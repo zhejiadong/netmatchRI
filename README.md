@@ -69,6 +69,28 @@ res <- reproduce_paper("all", n_rep = 500, output_dir = "paper-output")
 The full run can take a long time because matching is repeated over many
 replications, dependence levels, and treatment-effect settings.
 
+## TRIP real-data supplement
+
+The package includes a local-data wrapper for the TRIP application. It expects
+the existing private workspace file `TRIP/data_clear.RData`, which contains
+`ds_use` and `Adj`. The raw TRIP data are not bundled in the package.
+
+```r
+trip <- trip_application(
+  data_file = "../TRIP/data_clear.RData",
+  output_dir = "trip-application-output"
+)
+
+trip$tests
+trip$diagnostics
+```
+
+The command-line script is also installed at:
+
+```text
+inst/reproduce/trip-application.R
+```
+
 ## Solver note
 
 The current portable backend is deterministic and dependency-light, which keeps

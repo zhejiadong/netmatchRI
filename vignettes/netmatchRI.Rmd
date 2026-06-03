@@ -45,3 +45,15 @@ For paper reproduction, start with a smoke test:
 res <- reproduce_paper("table1", fast = TRUE, output_dir = tempdir())
 paper_table1(res$table1)
 ```
+
+## TRIP application supplement
+
+For the private TRIP workspace, run:
+
+```{r, eval = FALSE}
+trip <- trip_application("../TRIP/data_clear.RData")
+trip$tests
+trip$diagnostics
+```
+
+The package intentionally does not bundle the raw TRIP data.
