@@ -52,45 +52,55 @@ A clean development check should end with:
 Status: OK
 ```
 
-## Example: A TRIP-Like Network
+## Example: A 300-Unit TRIP-Like Network
 
-This example creates a small network with three loosely connected communities,
-similar in spirit to the TRIP application. The data include treatment `Z`,
-outcome `Y`, and covariates named like the TRIP analysis:
+This example creates a 300-unit network with four 75-unit communities, close to
+the scale used in the simulation study. It is also similar in spirit to the
+TRIP application because the data include treatment `Z`, outcome `Y`, and
+covariates named like the TRIP analysis:
 `edu`, `employment`, `ACMDT`, `baseRisk`, and `HIV`.
 
 ```r
 library(netmatchRI)
 
 set.seed(24)
-n <- 24
+n <- 300
+n_block <- 4
+block_size <- n / n_block
+block <- rep(seq_len(n_block), each = block_size)
 
-# Adjacency matrix A for an undirected network.
+# Adjacency matrix A for an undirected stochastic-block-style network.
+# Within-community ties are more likely than between-community ties.
+p_in <- 0.19
+p_out <- 0.003
 A <- matrix(0, n, n)
-for (b in 0:2) {
-  ids <- (1:8) + 8 * b
-  for (i in seq_along(ids)) {
-    j <- ifelse(i == 8, 1, i + 1)
-    A[ids[i], ids[j]] <- 1
-    A[ids[j], ids[i]] <- 1
+for (i in seq_len(n - 1)) {
+  for (j in (i + 1):n) {
+    p_ij <- if (block[i] == block[j]) p_in else p_out
+    A[i, j] <- A[j, i] <- rbinom(1, 1, p_ij)
   }
 }
 
-# A few bridges between communities.
-A[4, 12] <- A[12, 4] <- 1
-A[12, 20] <- A[20, 12] <- 1
-A[8, 16] <- A[16, 8] <- 1
+# Add a few deterministic bridges so the example network is connected enough
+# for shortest-path distances d_ij to be useful.
+A[75, 76] <- A[76, 75] <- 1
+A[150, 151] <- A[151, 150] <- 1
+A[225, 226] <- A[226, 225] <- 1
 
-community <- rep(c(0, 1, 2), each = 8)
 edu <- sample(1:4, n, replace = TRUE)
 employment <- sample(0:1, n, replace = TRUE)
 ACMDT <- sample(0:1, n, replace = TRUE)
-baseRisk <- 0.4 * community + rnorm(n)
-HIV <- rbinom(n, 1, plogis(-1 + 0.4 * community))
+baseRisk <- 0.35 * block + rnorm(n)
+HIV <- rbinom(n, 1, plogis(-1.2 + 0.25 * block + 0.25 * baseRisk))
 
-# A toy binary treatment and outcome.
-Z <- as.integer(seq_len(n) %% 2 == 0)
-Y <- 0.3 * Z + 0.2 * edu + 0.4 * HIV + 0.1 * baseRisk + rnorm(n)
+# A toy binary treatment with about 30% prevalence, as in the simulation study.
+lin_z <- 0.15 * edu + 0.25 * employment + 0.35 * HIV +
+  0.20 * baseRisk + 0.20 * block + rnorm(n)
+Z <- as.integer(lin_z >= stats::quantile(lin_z, 0.70))
+
+# A toy outcome under a nonzero treatment effect.
+Y <- 0.30 * Z + 0.20 * edu + 0.40 * HIV + 0.10 * baseRisk +
+  0.15 * block + rnorm(n)
 
 trip_like <- data.frame(
   Z = Z,
@@ -101,6 +111,8 @@ trip_like <- data.frame(
   baseRisk = baseRisk,
   HIV = HIV
 )
+
+table(trip_like$Z)
 ```
 
 Run the dual-penalty matched design. In manuscript notation, this uses
@@ -153,7 +165,7 @@ Evaluate an `(eta, rho)` grid:
 sens <- netmatch_sensitivity(
   match = m_dual,
   outcome = "Y",
-  eta = c(0, 0.03, 0.06),
+  eta = c(0, 0.03),
   rho = c(0, 0.10),
   d0 = 2
 )
