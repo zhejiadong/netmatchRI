@@ -1,4 +1,5 @@
 test_that("single penalty uses direct network distance threshold", {
+  testthat::skip_if_not_installed("optmatch")
   D <- matrix(3, 6, 6)
   diag(D) <- 0
   D[1, 4] <- D[4, 1] <- 1
@@ -8,19 +9,53 @@ test_that("single penalty uses direct network distance threshold", {
     X2 = c(0, 0, 0, 0, 0, 0)
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "single", kappa = 2)
+  expect_equal(m$solver, "optmatch")
   expect_false(any(rownames(m$data)[m$data$subclass == m$data$subclass[rownames(m$data) == "1"]] == "4"))
 })
 
-test_that("dual penalty avoids close same-arm controls in one set", {
+test_that("dual penalty keeps full matching constraints", {
+  skip_without_gurobi()
   D <- matrix(4, 5, 5)
   diag(D) <- 0
-  D[2, 3] <- D[3, 2] <- 1
+  D[3, 4] <- D[4, 3] <- 1
+  D[3, 5] <- D[5, 3] <- 1
+  D[4, 5] <- D[5, 4] <- 1
   dat <- data.frame(
-    Z = c(1, 0, 0, 0, 0),
-    X1 = c(0, 0.1, 0.2, 5, 6),
-    X2 = c(0, 0, 0, 0, 0)
+    Z = c(1, 1, 0, 0, 0),
+    X1 = c(0, 10, 0.1, 10.1, 5),
+    X2 = c(0, 1, 0.2, 1.2, 0.5)
   )
-  m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "dual", kappa = 2, max_controls = 3)
-  controls_in_set <- as.integer(rownames(m$data[m$data$Z == 0, ]))
-  expect_false(all(c(2, 3) %in% controls_in_set))
+  expect_error(
+    netmatch(dat, "Z", c("X1", "X2"), D, method = "dual", kappa = 2, max_controls = 3),
+    "No feasible matched design"
+  )
+})
+
+test_that("dual penalty uses Gurobi and covers all units when feasible", {
+  skip_without_gurobi()
+  D <- matrix(4, 4, 4)
+  diag(D) <- 0
+  dat <- data.frame(
+    Z = c(1, 1, 0, 0),
+    X1 = c(0, 10, 0.1, 10.1),
+    X2 = c(0, 0, 0, 0)
+  )
+  m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "dual", kappa = 2)
+  expect_equal(m$solver, "gurobi")
+  expect_equal(sort(as.integer(rownames(m$data))), 1:4)
+})
+
+test_that("dual penalty can use GLPK backend on a small feasible design", {
+  testthat::skip_if_not_installed("Rglpk")
+  testthat::skip_if_not_installed("slam")
+  D <- matrix(4, 4, 4)
+  diag(D) <- 0
+  dat <- data.frame(
+    Z = c(1, 1, 0, 0),
+    X1 = c(0, 10, 0.1, 10.1),
+    X2 = c(0, 1, 0.2, 1.2)
+  )
+  m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "dual", kappa = 2, solver = "glpk")
+  expect_equal(m$solver, "glpk")
+  expect_equal(sort(as.integer(rownames(m$data))), 1:4)
 })

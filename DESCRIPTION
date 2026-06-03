@@ -10,24 +10,33 @@ Author: Zhejia Dong [aut, cre], Youjin Lee [aut]
 Maintainer: Zhejia Dong <zhejia_dong@brown.edu>
 Description: User-friendly tools for matching observational data with network
     dependence and testing sharp null hypotheses by randomization inference.
-    The package implements covariate-only, single-penalty, and dual-penalty
-    matched designs, model-assisted variance bounds, sensitivity grids, and
-    paper reproduction helpers for simulation studies.
+    The package centers on a dual-penalty matched design that excludes close
+    treated-control pairs and close same-arm units within matched sets. It also
+    includes comparison matching designs, model-assisted variance bounds,
+    sensitivity grids, a critical sensitivity curve, and a built-in 300-unit
+    strong-dependence simulation example for evaluating the workflow.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Depends:
     R (>= 4.1.0)
 Imports:
-    stats
+    graphics,
+    Matrix,
+    stats,
+    utils
 Suggests:
     ggplot2,
     gurobi,
     igraph,
     knitr,
     MASS,
-    ROI,
-    ROI.plugin.glpk,
+    mvtnorm,
+    optmatch,
+    Rglpk,
+    rmarkdown,
+    slam,
     testthat (>= 3.0.0)
+VignetteBuilder: knitr
 Config/testthat/edition: 3

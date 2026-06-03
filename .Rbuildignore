@@ -7,4 +7,3 @@
 ^\.Rproj\.user$
 ^inst/reproduce/output$
 ^cran-comments\.md$
-^vignettes$

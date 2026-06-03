@@ -1,297 +1,232 @@
 # netmatchRI
 
-`netmatchRI` provides a user-friendly workflow for network-constrained
-matching and randomization inference with observational network data. The
-package follows the notation in the manuscript *Design and Analysis for Valid
-Causal Inference with Network-Dependent Data*.
+`netmatchRI` provides network-constrained matching and randomization inference
+for observational studies where units are connected by a graph. The main design
+is the dual-penalty matched design: close treated-control pairs are excluded,
+and close same-arm units are also prevented from appearing in the same matched
+set.
 
-The package is designed for two tasks:
+The exported API is focused on reusable public workflows: simulation,
+network-constrained matching, diagnostics, randomization inference, and
+sensitivity analysis.
 
-- applied analysis of network-dependent observational data;
-- reproduction of the paper simulation studies and real-data illustrations.
+## What The Package Does
 
-## Main Workflow
+- `simulate_netmatch_example()` creates a 300-unit strong-dependence example
+  data set with an outcome, treatment, covariates, adjacency matrix, graph
+  distances, and covariance matrix.
+- `netmatch()` builds a matched design. The core method is
+  `method = "dual"`. `method = "covariate"` and `method = "single"` are
+  comparison designs.
+- `diagnose_match()` checks covariate balance and within-set network distances.
+- `RI_naive()`, `RI_decay()`, and `RI_design()` run randomization inference.
+- `netmatch_sensitivity()` evaluates p-values over an eta-rho sensitivity grid.
+- `critical_sensitivity()` computes the critical eta curve for a dual-penalty
+  matched design.
+- `plot_sensitivity()` plots either p-value sensitivity curves or the critical
+  eta curve.
 
-The core workflow has four steps:
+## Installation
 
-1. Start with a data frame containing a binary treatment `Z`, outcome `Y`,
-   covariates `X`, and a network adjacency matrix `A`.
-2. Build matched sets with `netmatch()`.
-3. Test the sharp null with `netmatch_test()`.
-4. Inspect robustness to residual across-set dependence with
-   `netmatch_sensitivity()`.
-
-The network threshold is written in direct graph-distance units. If `d_ij` is
-the shortest-path distance between units `i` and `j`, then `kappa = 2` means
-that pairs with `d_ij <= 2` are treated as network-proximate. There is no
-inverse-distance `1 / d_ij` threshold in the user-facing API.
-
-## Install Locally Before Publication
-
-From R, install the local package from this folder:
+Install from the package source directory:
 
 ```r
 install.packages("remotes")
-remotes::install_local("C:/Users/zheji/Brown Dropbox/Zhejia Dong/24 NetworkMatching/MatchingNetDepedence/MatchingNet/netmatchRI")
+remotes::install_local("path/to/netmatchRI")
 library(netmatchRI)
 ```
 
-From PowerShell, run package checks before pushing or releasing:
+If you are working inside this repository, build and install from the parent
+directory:
 
-```powershell
-cd "C:\Users\zheji\Brown Dropbox\Zhejia Dong\24 NetworkMatching\MatchingNetDepedence\MatchingNet\netmatchRI"
-
-& "C:\Program Files\R\R-4.5.0\bin\Rscript.exe" -e "testthat::test_local('.')"
-& "C:\Program Files\R\R-4.5.0\bin\R.exe" CMD build .
-& "C:\Program Files\R\R-4.5.0\bin\R.exe" CMD check netmatchRI_0.0.1.tar.gz --no-manual
+```r
+setwd("/Users/zhejia/Brown Dropbox/Zhejia Dong/24 NetworkMatching/MatchingNetDepedence/MatchingNet")
+system("R CMD build netmatchRI")
+install.packages("netmatchRI_0.0.1.tar.gz", repos = NULL, type = "source")
+library(netmatchRI)
 ```
 
-A clean development check should end with:
+The dual-penalty method is a mixed-integer program. Use Gurobi when available:
+it is the recommended solver for the 300-unit example and repeated analyses.
+Without Gurobi, `solver = "auto"` falls back to the open-source GLPK backend
+through `Rglpk` and `slam`. GLPK is useful as a backup for moderate problems,
+but it can be slower for difficult or infeasible dual-penalty MIPs.
 
-```text
-Status: OK
-```
+## Inspect The Package
 
-## Example: A 300-Unit TRIP-Like Network
-
-This example creates a 300-unit network with four 75-unit communities, close to
-the scale used in the simulation study. It is also similar in spirit to the
-TRIP application because the data include treatment `Z`, outcome `Y`, and
-covariates named like the TRIP analysis:
-`edu`, `employment`, `ACMDT`, `baseRisk`, and `HIV`.
+R packages do not open a window or menu after installation. Inspect the package
+from the R console:
 
 ```r
 library(netmatchRI)
 
-set.seed(24)
-n <- 300
-n_block <- 4
-block_size <- n / n_block
-block <- rep(seq_len(n_block), each = block_size)
-
-# Adjacency matrix A for an undirected stochastic-block-style network.
-# Within-community ties are more likely than between-community ties.
-p_in <- 0.19
-p_out <- 0.003
-A <- matrix(0, n, n)
-for (i in seq_len(n - 1)) {
-  for (j in (i + 1):n) {
-    p_ij <- if (block[i] == block[j]) p_in else p_out
-    A[i, j] <- A[j, i] <- rbinom(1, 1, p_ij)
-  }
-}
-
-# Add a few deterministic bridges so the example network is connected enough
-# for shortest-path distances d_ij to be useful.
-A[75, 76] <- A[76, 75] <- 1
-A[150, 151] <- A[151, 150] <- 1
-A[225, 226] <- A[226, 225] <- 1
-
-edu <- sample(1:4, n, replace = TRUE)
-employment <- sample(0:1, n, replace = TRUE)
-ACMDT <- sample(0:1, n, replace = TRUE)
-baseRisk <- 0.35 * block + rnorm(n)
-HIV <- rbinom(n, 1, plogis(-1.2 + 0.25 * block + 0.25 * baseRisk))
-
-# A toy binary treatment with about 30% prevalence, as in the simulation study.
-lin_z <- 0.15 * edu + 0.25 * employment + 0.35 * HIV +
-  0.20 * baseRisk + 0.20 * block + rnorm(n)
-Z <- as.integer(lin_z >= stats::quantile(lin_z, 0.70))
-
-# A toy outcome under a nonzero treatment effect.
-Y <- 0.30 * Z + 0.20 * edu + 0.40 * HIV + 0.10 * baseRisk +
-  0.15 * block + rnorm(n)
-
-trip_like <- data.frame(
-  Z = Z,
-  Y = Y,
-  edu = edu,
-  employment = employment,
-  ACMDT = ACMDT,
-  baseRisk = baseRisk,
-  HIV = HIV
-)
-
-table(trip_like$Z)
+ls("package:netmatchRI")
+help(package = "netmatchRI")
+?netmatchRI
+?netmatch
 ```
 
-Run the dual-penalty matched design. In manuscript notation, this uses
-`kappa = 2`, so network-proximate units with `d_ij <= 2` are not allowed inside
-the relevant matched-set relations.
+If RStudio reports that the package help index is missing, restart R and
+reinstall the built source tarball:
+
+```r
+.rs.restartR()
+install.packages("netmatchRI_0.0.1.tar.gz", repos = NULL, type = "source")
+library(netmatchRI)
+
+file.exists(system.file("html", "00Index.html", package = "netmatchRI"))
+help(package = "netmatchRI")
+```
+
+## Dual-Penalty Workflow
+
+Start with the built-in example:
+
+```r
+sim <- simulate_netmatch_example()
+
+dat <- sim$data
+net_dist <- sim$net_dist
+
+table(dat$Z)
+summary(lm(Y ~ Z, data = dat))$coefficients
+```
+
+If you want to use your own data, `dat` should be a data frame with one row per
+unit, a binary treatment column such as `Z`, covariate columns such as `X1`,
+`X2`, `X3`, and an outcome column such as `Y` for inference.
+
+Build the proposed dual-penalty design:
 
 ```r
 m_dual <- netmatch(
-  data = trip_like,
+  data = dat,
   treat = "Z",
-  covariates = c("edu", "employment", "ACMDT", "baseRisk", "HIV"),
-  network = A,
+  covariates = c("X1", "X2", "X3"),
+  network = net_dist,
   method = "dual",
-  kappa = 2
+  kappa = 2,
+  solver = "gurobi"
 )
 
 m_dual
 summary(m_dual)
 ```
 
-Run randomization inference. The statistic `T` is the weighted sum of
-within-set Mann-Whitney statistics. `method = "decay"` uses the model-assisted
-variance bound with sensitivity parameters `eta` and `rho`, and truncates
-across-set dependence beyond `d0`.
+If Gurobi is not available, try:
 
 ```r
-fit_decay <- netmatch_test(
-  match = m_dual,
+m_dual <- netmatch(
+  data = dat,
+  treat = "Z",
+  covariates = c("X1", "X2", "X3"),
+  network = net_dist,
+  method = "dual",
+  kappa = 2,
+  solver = "glpk",
+  timelimit = 120
+)
+```
+
+Check diagnostics:
+
+```r
+diag <- diagnose_match(m_dual)
+diag$covariate_balance
+diag$network_distance
+diag$within_distance_table
+
+plot(m_dual)
+```
+
+Run randomization inference:
+
+```r
+ri_naive <- RI_naive(m_dual, outcome = "Y")
+ri_design <- RI_design(m_dual, outcome = "Y")
+ri_decay <- RI_decay(
+  m_dual,
   outcome = "Y",
-  method = "decay",
   eta = 0.03,
-  rho = 0.10,
-  d0 = 2
+  rho = 0.10
 )
 
-fit_decay
+rbind(ri_naive$result, ri_decay$result, ri_design$result)
 ```
 
-Compare with naive randomization inference, which sets all across-set
-covariances to zero:
-
-```r
-fit_naive <- netmatch_test(m_dual, outcome = "Y", method = "naive")
-fit_naive
-```
-
-Evaluate an `(eta, rho)` grid:
+Evaluate p-value sensitivity:
 
 ```r
 sens <- netmatch_sensitivity(
   match = m_dual,
   outcome = "Y",
-  eta = c(0, 0.03),
-  rho = c(0, 0.10),
-  d0 = 2
+  eta = c(0, 0.01, 0.02, 0.03, 0.05, 0.10),
+  rho = seq(0, 1, by = 0.05)
 )
 
-sens$grid
+head(sens$grid)
+plot_sensitivity(sens, type = "pvalue")
 ```
 
-Check matching diagnostics:
+Compute and plot the critical sensitivity curve:
 
 ```r
-diag <- diagnose_match(m_dual)
-diag$covariate_smd
-diag$average_within_distance
-diag$within_distance_table
-```
-
-You can also compare the three matched designs:
-
-```r
-m_cov <- netmatch(trip_like, "Z",
-                  c("edu", "employment", "ACMDT", "baseRisk", "HIV"),
-                  A, method = "covariate", kappa = 2)
-
-m_single <- netmatch(trip_like, "Z",
-                     c("edu", "employment", "ACMDT", "baseRisk", "HIV"),
-                     A, method = "single", kappa = 2)
-
-m_dual <- netmatch(trip_like, "Z",
-                   c("edu", "employment", "ACMDT", "baseRisk", "HIV"),
-                   A, method = "dual", kappa = 2)
-
-rbind(
-  covariate = netmatch_test(m_cov, "Y", method = "decay",
-                            eta = 0.03, rho = 0.10, d0 = 2)$result,
-  single = netmatch_test(m_single, "Y", method = "decay",
-                         eta = 0.03, rho = 0.10, d0 = 2)$result,
-  dual = netmatch_test(m_dual, "Y", method = "decay",
-                       eta = 0.03, rho = 0.10, d0 = 2)$result
-)
-```
-
-## Reproduce Paper Simulation Smoke Tests
-
-Use `fast = TRUE` to verify that the reproduction pipeline works in your local
-environment:
-
-```r
-smoke <- reproduce_paper(
-  task = "table1",
-  fast = TRUE,
-  output_dir = "paper-smoke-output"
+crit <- critical_sensitivity(
+  match = m_dual,
+  outcome = "Y",
+  rho = seq(0, 1, by = 0.01),
+  alpha = 0.05
 )
 
-paper_table1(smoke$table1)
+head(crit$curve)
+crit$interpretation
+
+plot_sensitivity(crit, type = "critical")
+plot_sensitivity(crit, type = "critical", critical_ylim = c(0, 1))
 ```
 
-Run all paper reproduction tasks in smoke-test mode:
+## Comparison Designs
+
+The package also includes two comparison methods:
 
 ```r
-smoke_all <- reproduce_paper(
-  task = "all",
-  fast = TRUE,
-  output_dir = "paper-smoke-output"
+m_cov <- netmatch(
+  dat, "Z", c("X1", "X2", "X3"), net_dist,
+  method = "covariate",
+  kappa = 2
+)
+
+m_single <- netmatch(
+  dat, "Z", c("X1", "X2", "X3"), net_dist,
+  method = "single",
+  kappa = 2
 )
 ```
 
-Full manuscript-scale reproduction uses `n_rep = 500` and can take a long time
-because matching is repeated across replications, dependence levels, and
-treatment-effect settings:
+Use these to compare against the proposed dual-penalty design, not as the main
+workflow.
 
-```r
-res <- reproduce_paper(
-  task = "all",
-  n_rep = 500,
-  output_dir = "paper-output"
-)
+## Function Reference
+
+| Function | Main Returned Values |
+| --- | --- |
+| `simulate_netmatch_example()` | `data`, `Adj`, `net_dist`, `V`, `seed`, `dep_index`, `beta_z` |
+| `netmatch()` | matched `data`, `match_table`, `network_distance`, `method`, `kappa`, `solver` |
+| `summary()` | matched-set size summaries |
+| `plot()` | within-set network-distance plot |
+| `diagnose_match()` | `covariate_balance`, `network_distance`, `within_distance_table`, aliases `covariate_smd`, `average_within_distance` |
+| `RI_naive()`, `RI_decay()`, `RI_design()` | `result`, `detail`, `covariance`, `set_distance` |
+| `netmatch_sensitivity()` | p-value `grid`, source `match`, `outcome`, `kappa` |
+| `critical_sensitivity()` | critical `curve`, `naive`, `interpretation` |
+| `plot_sensitivity()` | a `ggplot` object |
+
+## Development Check
+
+From a terminal:
+
+```sh
+R CMD build netmatchRI
+R CMD check netmatchRI_0.0.1.tar.gz --no-manual
 ```
 
-Large simulation outputs are intentionally not bundled in the package.
-
-## TRIP Real-Data Application
-
-The package includes a wrapper for the local TRIP real-data file. The raw TRIP
-data are not bundled in the package or pushed to GitHub.
-
-The wrapper expects a local `.RData` file containing:
-
-- `ds_use`: a data frame with `EGO_ID`, `Z`, `Y`, `edu`, `employment`,
-  `ACMDT`, `baseRisk`, and `HIV`;
-- `Adj`: a square adjacency matrix aligned with the TRIP units.
-
-Run:
-
-```r
-trip <- trip_application(
-  data_file = "../TRIP/data_clear.RData",
-  output_dir = "trip-application-output"
-)
-
-trip$tests
-trip$diagnostics
-```
-
-Or from PowerShell:
-
-```powershell
-Rscript inst/reproduce/trip-application.R "../TRIP/data_clear.RData" "trip-application-output"
-```
-
-## Install From the Private GitHub Repository
-
-After you have access to the private GitHub repository:
-
-```r
-remotes::install_github("zhejiadong/netmatchRI")
-library(netmatchRI)
-```
-
-The current repository is private. This keeps the package publishable and easy
-to share with selected collaborators before a public release. GitHub Actions
-are included for `R CMD check`.
-
-## Solver Note
-
-The current package backend is deterministic and dependency-light so examples,
-tests, and smoke runs work without a licensed solver. The public interface
-already reserves `solver = "gurobi"` and `solver = "glpk"` for exact MIP
-backends. Gurobi remains the intended backend for manuscript-scale optimized
-matching once the exact solver path is wired into the package internals.
+A successful check ends with `Status: OK`.

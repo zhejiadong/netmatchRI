@@ -11,49 +11,93 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-`netmatchRI` uses a short workflow:
+`netmatchRI` supports network-constrained matching and randomization inference
+for observational data with possible graph dependence. The main workflow uses
+the dual-penalty matched design.
 
-1. Build a matched design with `netmatch()`.
-2. Test the matched design with `netmatch_test()`.
-3. Inspect sensitivity to residual network dependence with
-   `netmatch_sensitivity()`.
-4. Reproduce paper simulations with `reproduce_paper()`.
-
-```{r}
-library(netmatchRI)
-
-A <- matrix(0, 8, 8)
-A[cbind(1:7, 2:8)] <- 1
-A[cbind(2:8, 1:7)] <- 1
-
-dat <- data.frame(
-  Z = c(1, 1, 1, 1, 0, 0, 0, 0),
-  X1 = c(0, 1, 2, 3, 0.1, 1.1, 2.1, 3.1),
-  X2 = c(1, 1, 2, 2, 1.2, 1.1, 2.2, 2.1),
-  Y  = c(3, 4, 5, 6, 2, 3, 4, 5)
-)
-
-m <- netmatch(dat, "Z", c("X1", "X2"), A, method = "dual", kappa = 2)
-m
-
-netmatch_test(m, "Y", method = "naive")
-```
-
-For paper reproduction, start with a smoke test:
-
-```{r}
-res <- reproduce_paper("table1", fast = TRUE, output_dir = tempdir())
-paper_table1(res$table1)
-```
-
-## TRIP application supplement
-
-For the private TRIP workspace, run:
+## Inspect The Package
 
 ```{r, eval = FALSE}
-trip <- trip_application("../TRIP/data_clear.RData")
-trip$tests
-trip$diagnostics
+library(netmatchRI)
+
+ls("package:netmatchRI")
+help(package = "netmatchRI")
+?netmatch
 ```
 
-The package intentionally does not bundle the raw TRIP data.
+## Generate Example Data
+
+```{r, eval = FALSE}
+sim <- simulate_netmatch_example()
+dat <- sim$data
+net_dist <- sim$net_dist
+
+table(dat$Z)
+summary(lm(Y ~ Z, data = dat))$coefficients
+```
+
+For your own study, use a data frame with one row per unit, a binary treatment
+column such as `Z`, covariates such as `X1`, `X2`, `X3`, and an outcome column
+such as `Y` for inference.
+
+## Build The Dual-Penalty Design
+
+```{r, eval = FALSE}
+m_dual <- netmatch(
+  data = dat,
+  treat = "Z",
+  covariates = c("X1", "X2", "X3"),
+  network = net_dist,
+  method = "dual",
+  kappa = 2,
+  solver = "gurobi"
+)
+
+m_dual
+summary(m_dual)
+```
+
+If Gurobi is unavailable, use `solver = "glpk"` as an open-source backup.
+
+## Diagnostics And Inference
+
+```{r, eval = FALSE}
+diagnostics <- diagnose_match(m_dual)
+diagnostics$covariate_balance
+diagnostics$network_distance
+
+ri_naive <- RI_naive(m_dual, "Y")
+ri_decay <- RI_decay(m_dual, "Y", eta = 0.03, rho = 0.10)
+ri_design <- RI_design(m_dual, "Y")
+
+rbind(ri_naive$result, ri_decay$result, ri_design$result)
+```
+
+## Sensitivity Analysis
+
+```{r, eval = FALSE}
+sens <- netmatch_sensitivity(
+  m_dual,
+  "Y",
+  eta = c(0, 0.01, 0.02, 0.03, 0.05),
+  rho = seq(0, 1, by = 0.05)
+)
+
+plot_sensitivity(sens, type = "pvalue")
+
+crit <- critical_sensitivity(m_dual, "Y")
+plot_sensitivity(crit, type = "critical")
+```
+
+## Comparison Designs
+
+`method = "covariate"` and `method = "single"` are included as comparison
+designs:
+
+```{r, eval = FALSE}
+m_cov <- netmatch(dat, "Z", c("X1", "X2", "X3"), net_dist,
+                  method = "covariate", kappa = 2)
+
+m_single <- netmatch(dat, "Z", c("X1", "X2", "X3"), net_dist,
+                     method = "single", kappa = 2)
+```

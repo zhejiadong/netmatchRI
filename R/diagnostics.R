@@ -3,7 +3,25 @@
 #' Computes compact covariate and network diagnostics for a `netmatch` object.
 #'
 #' @param match A `netmatch` object.
-#' @return A list of diagnostic tables.
+#' @return A list with `covariate_balance`, `network_distance`,
+#'   `within_distance_table`, and backward-compatible aliases
+#'   `covariate_smd` and `average_within_distance`.
+#' @examples
+#' \donttest{
+#' if (requireNamespace("igraph", quietly = TRUE) &&
+#'     requireNamespace("mvtnorm", quietly = TRUE) &&
+#'     (requireNamespace("gurobi", quietly = TRUE) ||
+#'      (requireNamespace("Rglpk", quietly = TRUE) &&
+#'       requireNamespace("slam", quietly = TRUE)))) {
+#'   sim <- simulate_netmatch_example()
+#'   m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
+#'                 method = "dual", kappa = 2, solver = "auto")
+#'   diag <- diagnose_match(m)
+#'   diag$covariate_balance
+#'   diag$network_distance
+#'   diag$within_distance_table
+#' }
+#' }
 #' @export
 diagnose_match <- function(match) {
   if (!inherits(match, "netmatch")) {
@@ -25,10 +43,19 @@ diagnose_match <- function(match) {
     proportion = as.numeric(tab) / sum(tab)
   )
 
+  network_summary <- data.frame(
+    n_pairs = length(within_d),
+    min_distance = min(within_d, na.rm = TRUE),
+    mean_distance = mean(within_d, na.rm = TRUE),
+    max_distance = max(within_d, na.rm = TRUE)
+  )
+
   list(
+    covariate_balance = cov_smd,
+    network_distance = network_summary,
+    within_distance_table = dist_tab,
     covariate_smd = cov_smd,
-    average_within_distance = mean(within_d, na.rm = TRUE),
-    within_distance_table = dist_tab
+    average_within_distance = network_summary$mean_distance
   )
 }
 

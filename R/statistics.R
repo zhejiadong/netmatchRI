@@ -2,7 +2,12 @@
   sum(outer(y_t, y_c, ">"))
 }
 
-.observed_stats <- function(data, outcome, treat = "Z", subclass = "subclass") {
+.observed_stats <- function(data,
+                            outcome,
+                            treat = "Z",
+                            subclass = "subclass",
+                            weight_type = c("ns", "ntc")) {
+  weight_type <- match.arg(weight_type)
   sets <- sort(unique(data[[subclass]]))
   rows <- lapply(sets, function(s) {
     sub <- data[data[[subclass]] == s, , drop = FALSE]
@@ -20,7 +25,10 @@
       U = u,
       mu = nt * nc / 2,
       var = nt * nc * (n + 1) / 12,
-      weight = 1 / (n + 1)
+      weight = switch(weight_type,
+        ns = 1 / (n + 1),
+        ntc = if (nt > 0 && nc > 0) 1 / (nt * nc) else 0
+      )
     )
   })
   stats_df <- do.call(rbind, rows)
@@ -32,8 +40,7 @@
 }
 
 .design_cov_bound <- function(nt_s, nc_s, nt_k, nc_k) {
-  # Exact enough for small matched sets; qwilcox gives the U-statistic quantile.
-  grid <- seq(0.0005, 0.9995, length.out = 2000)
+  grid <- seq(0.0001, 0.9999, length.out = 10000)
   q_s <- stats::qwilcox(grid, m = nt_s, n = nc_s)
   q_k <- stats::qwilcox(grid, m = nt_k, n = nc_k)
   mean(q_s * q_k) - mean(q_s) * mean(q_k)
@@ -55,23 +62,44 @@
   out
 }
 
-.covariance_matrix <- function(stats_df, set_dist, method, eta = 1, rho = 1, d0 = Inf) {
+.variance_components <- function(stats_df, set_dist, kappa) {
   S <- nrow(stats_df)
-  Sigma <- matrix(0, S, S)
-  diag(Sigma) <- stats_df$var
-  if (S < 2 || method == "naive") return(Sigma)
-
+  bound <- matrix(0, S, S)
+  diag(bound) <- stats_df$var
+  if (S < 2) return(list(bound = bound, set_dist = set_dist, kappa = kappa))
   for (i in seq_len(S - 1)) {
     for (j in (i + 1):S) {
-      bound <- .design_cov_bound(stats_df$nt[i], stats_df$nc[i], stats_df$nt[j], stats_df$nc[j])
-      if (method == "design") {
-        val <- if (set_dist[i, j] <= d0) bound else 0
-      } else {
-        val <- if (set_dist[i, j] <= d0) eta * rho^(set_dist[i, j] - 1) * bound else 0
-      }
-      Sigma[i, j] <- Sigma[j, i] <- val
+      val <- .design_cov_bound(stats_df$nt[i], stats_df$nc[i], stats_df$nt[j], stats_df$nc[j])
+      if (!is.finite(set_dist[i, j]) || set_dist[i, j] > kappa) val <- 0
+      bound[i, j] <- bound[j, i] <- val
     }
   }
+  list(bound = bound, set_dist = set_dist, kappa = kappa)
+}
+
+.covariance_matrix <- function(stats_df, set_dist, method, eta = 1, rho = 1, kappa = Inf) {
+  components <- .variance_components(stats_df, set_dist, kappa)
+  .covariance_from_components(components, method, eta, rho)
+}
+
+.covariance_from_components <- function(components, method, eta = 1, rho = 1) {
+  Sigma <- components$bound
+  S <- nrow(Sigma)
+  diag_vals <- diag(Sigma)
+  if (S < 2 || method == "naive") {
+    Sigma[,] <- 0
+    diag(Sigma) <- diag_vals
+    return(Sigma)
+  }
+  if (method == "design") return(Sigma)
+  set_dist <- components$set_dist
+  for (i in seq_len(S - 1)) {
+    for (j in (i + 1):S) {
+      if (Sigma[i, j] == 0) next
+      Sigma[i, j] <- Sigma[j, i] <- Sigma[i, j] * eta * rho^(set_dist[i, j] - 1)
+    }
+  }
+  diag(Sigma) <- diag_vals
   Sigma
 }
 

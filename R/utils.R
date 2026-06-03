@@ -48,14 +48,35 @@
     t(sv$u[, keep, drop = FALSE])
 }
 
-.mahalanobis_matrix <- function(data, treat, covariates) {
+.ginv <- function(S) {
+  if (requireNamespace("MASS", quietly = TRUE)) return(MASS::ginv(S))
+  .safe_inverse(S)
+}
+
+.mahalanobis_matrix <- function(data, treat, covariates, cov_type = c("pooled", "overall")) {
+  cov_type <- match.arg(cov_type)
   X <- stats::model.matrix(
     stats::reformulate(covariates),
     data = data
   )
   X <- X[, colnames(X) != "(Intercept)", drop = FALSE]
-  X <- scale(X)
-  S_inv <- .safe_inverse(stats::cov(X))
+  keep <- apply(X, 2, stats::sd, na.rm = TRUE) > 0
+  if (!any(keep)) {
+    stop("At least one matching covariate must have nonzero variance.", call. = FALSE)
+  }
+  X <- scale(X[, keep, drop = FALSE])
+  if (cov_type == "pooled") {
+    if (sum(treat == 1) < 2 || sum(treat == 0) < 2) {
+      stop("Pooled Mahalanobis distance requires at least two treated and two control units.", call. = FALSE)
+    }
+    S1 <- stats::cov(X[treat == 1, , drop = FALSE])
+    S0 <- stats::cov(X[treat == 0, , drop = FALSE])
+    S <- ((sum(treat == 1) - 1) * S1 + (sum(treat == 0) - 1) * S0) /
+      (length(treat) - 2)
+  } else {
+    S <- stats::cov(X)
+  }
+  S_inv <- .ginv(S)
   Q <- X %*% S_inv %*% t(X)
   d2 <- outer(diag(Q), diag(Q), "+") - 2 * Q
   d2[d2 < 0] <- 0
