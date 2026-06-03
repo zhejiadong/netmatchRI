@@ -1,0 +1,33 @@
+Package: netmatchRI
+Title: Network-Constrained Matching and Randomization Inference
+Version: 0.0.1
+Authors@R: c(
+    person("Zhejia", "Dong", role = c("aut", "cre"),
+           email = "zhejia_dong@brown.edu"),
+    person("Youjin", "Lee", role = "aut")
+  )
+Author: Zhejia Dong [aut, cre], Youjin Lee [aut]
+Maintainer: Zhejia Dong <zhejia_dong@brown.edu>
+Description: User-friendly tools for matching observational data with network
+    dependence and testing sharp null hypotheses by randomization inference.
+    The package implements covariate-only, single-penalty, and dual-penalty
+    matched designs, model-assisted variance bounds, sensitivity grids, and
+    paper reproduction helpers for simulation studies.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends:
+    R (>= 4.1.0)
+Imports:
+    stats
+Suggests:
+    ggplot2,
+    gurobi,
+    igraph,
+    knitr,
+    MASS,
+    ROI,
+    ROI.plugin.glpk,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

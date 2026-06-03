@@ -1,0 +1,10 @@
+^\.github$
+^data-raw$
+^README\.Rmd$
+^\.git$
+^\.gitignore$
+^.*\.Rproj$
+^\.Rproj\.user$
+^inst/reproduce/output$
+^cran-comments\.md$
+^vignettes$
