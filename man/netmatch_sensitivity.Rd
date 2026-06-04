@@ -31,21 +31,15 @@ matching cutoff \code{kappa} for covariance truncation.
 }
 \examples{
 \donttest{
-if (requireNamespace("igraph", quietly = TRUE) &&
-    requireNamespace("mvtnorm", quietly = TRUE) &&
-    (requireNamespace("gurobi", quietly = TRUE) ||
-     (requireNamespace("Rglpk", quietly = TRUE) &&
-      requireNamespace("slam", quietly = TRUE)))) {
-  sim <- simulate_netmatch_example()
-  m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
-                method = "dual", kappa = 2, solver = "auto")
-  sens <- netmatch_sensitivity(
-    m,
-    "Y",
-    eta = c(0, 0.01, 0.03),
-    rho = c(0, 0.25, 0.50)
-  )
-  sens$grid
-}
+sim <- simulate_netmatch_example()
+m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
+              method = "dual", kappa = 2, solver = "auto")
+sens <- netmatch_sensitivity(
+  m,
+  "Y",
+  eta = c(0, 0.01, 0.03),
+  rho = c(0, 0.25, 0.50)
+)
+sens$grid
 }
 }

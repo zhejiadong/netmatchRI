@@ -16,9 +16,9 @@ remotes::install_local("path/to/netmatchRI")
 library(netmatchRI)
 ```
 
-Use Gurobi when available for dual-penalty matching. Without Gurobi,
-`solver = "auto"` falls back to the open-source GLPK backend through `Rglpk`
-and `slam`.
+Installing `netmatchRI` also installs the core R dependencies used by the
+package. Gurobi is optional. When Gurobi is unavailable, `solver = "auto"`
+falls back to the open-source GLPK backend.
 
 ## Example
 

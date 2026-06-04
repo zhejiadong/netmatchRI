@@ -27,18 +27,12 @@ Computes compact covariate balance and within-set network-distance diagnostics.
 }
 \examples{
 \donttest{
-if (requireNamespace("igraph", quietly = TRUE) &&
-    requireNamespace("mvtnorm", quietly = TRUE) &&
-    (requireNamespace("gurobi", quietly = TRUE) ||
-     (requireNamespace("Rglpk", quietly = TRUE) &&
-      requireNamespace("slam", quietly = TRUE)))) {
-  sim <- simulate_netmatch_example()
-  m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
-                method = "dual", kappa = 2, solver = "auto")
-  diag <- diagnose_match(m)
-  diag$covariate_balance
-  diag$network_distance
-  diag$within_distance_table
-}
+sim <- simulate_netmatch_example()
+m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
+              method = "dual", kappa = 2, solver = "auto")
+diag <- diagnose_match(m)
+diag$covariate_balance
+diag$network_distance
+diag$within_distance_table
 }
 }

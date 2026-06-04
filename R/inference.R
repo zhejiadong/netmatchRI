@@ -18,18 +18,12 @@
 #'   analysis `kappa`, and the original `match`.
 #' @examples
 #' \donttest{
-#' if (requireNamespace("igraph", quietly = TRUE) &&
-#'     requireNamespace("mvtnorm", quietly = TRUE) &&
-#'     (requireNamespace("gurobi", quietly = TRUE) ||
-#'      (requireNamespace("Rglpk", quietly = TRUE) &&
-#'       requireNamespace("slam", quietly = TRUE)))) {
-#'   sim <- simulate_netmatch_example()
-#'   m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
-#'                 method = "dual", kappa = 2, solver = "auto")
-#'   RI_naive(m, "Y")
-#'   RI_decay(m, "Y", eta = 0.03, rho = 0.10)
-#'   RI_design(m, "Y")
-#' }
+#' sim <- simulate_netmatch_example()
+#' m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
+#'               method = "dual", kappa = 2, solver = "auto")
+#' RI_naive(m, "Y")
+#' RI_decay(m, "Y", eta = 0.03, rho = 0.10)
+#' RI_design(m, "Y")
 #' }
 netmatch_test <- function(match,
                           outcome,
@@ -150,22 +144,16 @@ print.netmatch_test <- function(x, ...) {
 #'   `match`, `outcome` name, and analysis `kappa`.
 #' @examples
 #' \donttest{
-#' if (requireNamespace("igraph", quietly = TRUE) &&
-#'     requireNamespace("mvtnorm", quietly = TRUE) &&
-#'     (requireNamespace("gurobi", quietly = TRUE) ||
-#'      (requireNamespace("Rglpk", quietly = TRUE) &&
-#'       requireNamespace("slam", quietly = TRUE)))) {
-#'   sim <- simulate_netmatch_example()
-#'   m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
-#'                 method = "dual", kappa = 2, solver = "auto")
-#'   sens <- netmatch_sensitivity(
-#'     m,
-#'     "Y",
-#'     eta = c(0, 0.01, 0.03),
-#'     rho = c(0, 0.25, 0.50)
-#'   )
-#'   sens$grid
-#' }
+#' sim <- simulate_netmatch_example()
+#' m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
+#'               method = "dual", kappa = 2, solver = "auto")
+#' sens <- netmatch_sensitivity(
+#'   m,
+#'   "Y",
+#'   eta = c(0, 0.01, 0.03),
+#'   rho = c(0, 0.25, 0.50)
+#' )
+#' sens$grid
 #' }
 #' @export
 netmatch_sensitivity <- function(match,
@@ -218,18 +206,12 @@ print.netmatch_sensitivity <- function(x, ...) {
 #'   `match`, and `outcome` name.
 #' @examples
 #' \donttest{
-#' if (requireNamespace("igraph", quietly = TRUE) &&
-#'     requireNamespace("mvtnorm", quietly = TRUE) &&
-#'     (requireNamespace("gurobi", quietly = TRUE) ||
-#'      (requireNamespace("Rglpk", quietly = TRUE) &&
-#'       requireNamespace("slam", quietly = TRUE)))) {
-#'   sim <- simulate_netmatch_example()
-#'   m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
-#'                 method = "dual", kappa = 2, solver = "auto")
-#'   crit <- critical_sensitivity(m, "Y", rho = seq(0, 1, by = 0.25))
-#'   crit$curve
-#'   crit$interpretation
-#' }
+#' sim <- simulate_netmatch_example()
+#' m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
+#'               method = "dual", kappa = 2, solver = "auto")
+#' crit <- critical_sensitivity(m, "Y", rho = seq(0, 1, by = 0.25))
+#' crit$curve
+#' crit$interpretation
 #' }
 #' @export
 critical_sensitivity <- function(match,
@@ -321,22 +303,15 @@ print.netmatch_critical_sensitivity <- function(x, ...) {
 #' @return A `ggplot` object.
 #' @examples
 #' \donttest{
-#' if (requireNamespace("igraph", quietly = TRUE) &&
-#'     requireNamespace("mvtnorm", quietly = TRUE) &&
-#'     requireNamespace("ggplot2", quietly = TRUE) &&
-#'     (requireNamespace("gurobi", quietly = TRUE) ||
-#'      (requireNamespace("Rglpk", quietly = TRUE) &&
-#'       requireNamespace("slam", quietly = TRUE)))) {
-#'   sim <- simulate_netmatch_example()
-#'   m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
-#'                 method = "dual", kappa = 2, solver = "auto")
-#'   sens <- netmatch_sensitivity(m, "Y", eta = c(0, 0.03),
-#'                                rho = c(0, 0.5, 1))
-#'   plot_sensitivity(sens, type = "pvalue")
+#' sim <- simulate_netmatch_example()
+#' m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
+#'               method = "dual", kappa = 2, solver = "auto")
+#' sens <- netmatch_sensitivity(m, "Y", eta = c(0, 0.03),
+#'                              rho = c(0, 0.5, 1))
+#' plot_sensitivity(sens, type = "pvalue")
 #'
-#'   crit <- critical_sensitivity(m, "Y")
-#'   plot_sensitivity(crit, type = "critical")
-#' }
+#' crit <- critical_sensitivity(m, "Y")
+#' plot_sensitivity(crit, type = "critical")
 #' }
 #' @export
 plot_sensitivity <- function(x,

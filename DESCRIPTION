@@ -22,21 +22,21 @@ RoxygenNote: 7.3.3
 Depends:
     R (>= 4.1.0)
 Imports:
-    graphics,
-    Matrix,
-    stats,
-    utils
-Suggests:
     ggplot2,
-    gurobi,
+    graphics,
     igraph,
-    knitr,
-    MASS,
+    Matrix,
     mvtnorm,
     optmatch,
     Rglpk,
-    rmarkdown,
     slam,
+    stats,
+    utils
+Suggests:
+    gurobi,
+    knitr,
+    MASS,
+    rmarkdown,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 Config/testthat/edition: 3

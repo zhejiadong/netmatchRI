@@ -44,17 +44,11 @@ If the independence/naive variance is already not significant at
 }
 \examples{
 \donttest{
-if (requireNamespace("igraph", quietly = TRUE) &&
-    requireNamespace("mvtnorm", quietly = TRUE) &&
-    (requireNamespace("gurobi", quietly = TRUE) ||
-     (requireNamespace("Rglpk", quietly = TRUE) &&
-      requireNamespace("slam", quietly = TRUE)))) {
-  sim <- simulate_netmatch_example()
-  m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
-                method = "dual", kappa = 2, solver = "auto")
-  crit <- critical_sensitivity(m, "Y", rho = seq(0, 1, by = 0.25))
-  crit$curve
-  crit$interpretation
-}
+sim <- simulate_netmatch_example()
+m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
+              method = "dual", kappa = 2, solver = "auto")
+crit <- critical_sensitivity(m, "Y", rho = seq(0, 1, by = 0.25))
+crit$curve
+crit$interpretation
 }
 }

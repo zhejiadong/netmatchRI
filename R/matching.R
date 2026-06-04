@@ -33,24 +33,18 @@
 #'   `match_table`, and the raw `solver_result`.
 #' @examples
 #' \donttest{
-#' if (requireNamespace("igraph", quietly = TRUE) &&
-#'     requireNamespace("mvtnorm", quietly = TRUE) &&
-#'     (requireNamespace("gurobi", quietly = TRUE) ||
-#'      (requireNamespace("Rglpk", quietly = TRUE) &&
-#'       requireNamespace("slam", quietly = TRUE)))) {
-#'   sim <- simulate_netmatch_example()
-#'   m <- netmatch(
-#'     data = sim$data,
-#'     treat = "Z",
-#'     covariates = c("X1", "X2", "X3"),
-#'     network = sim$net_dist,
-#'     method = "dual",
-#'     kappa = 2,
-#'     solver = "auto"
-#'   )
-#'   m
-#'   summary(m)
-#' }
+#' sim <- simulate_netmatch_example()
+#' m <- netmatch(
+#'   data = sim$data,
+#'   treat = "Z",
+#'   covariates = c("X1", "X2", "X3"),
+#'   network = sim$net_dist,
+#'   method = "dual",
+#'   kappa = 2,
+#'   solver = "auto"
+#' )
+#' m
+#' summary(m)
 #' }
 #' @export
 netmatch <- function(data,

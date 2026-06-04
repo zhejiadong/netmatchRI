@@ -46,17 +46,11 @@ covariance is \eqn{M_{sk}} when \eqn{d_{sk} <= kappa} and zero otherwise. For
 }
 \examples{
 \donttest{
-if (requireNamespace("igraph", quietly = TRUE) &&
-    requireNamespace("mvtnorm", quietly = TRUE) &&
-    (requireNamespace("gurobi", quietly = TRUE) ||
-     (requireNamespace("Rglpk", quietly = TRUE) &&
-      requireNamespace("slam", quietly = TRUE)))) {
-  sim <- simulate_netmatch_example()
-  m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
-                method = "dual", kappa = 2, solver = "auto")
-  RI_naive(m, "Y")
-  RI_decay(m, "Y", eta = 0.03, rho = 0.10)
-  RI_design(m, "Y")
-}
+sim <- simulate_netmatch_example()
+m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
+              method = "dual", kappa = 2, solver = "auto")
+RI_naive(m, "Y")
+RI_decay(m, "Y", eta = 0.03, rho = 0.10)
+RI_design(m, "Y")
 }
 }

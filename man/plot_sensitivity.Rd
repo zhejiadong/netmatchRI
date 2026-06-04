@@ -30,20 +30,13 @@ critical eta curve from \code{critical_sensitivity()}.
 }
 \examples{
 \donttest{
-if (requireNamespace("igraph", quietly = TRUE) &&
-    requireNamespace("mvtnorm", quietly = TRUE) &&
-    requireNamespace("ggplot2", quietly = TRUE) &&
-    (requireNamespace("gurobi", quietly = TRUE) ||
-     (requireNamespace("Rglpk", quietly = TRUE) &&
-      requireNamespace("slam", quietly = TRUE)))) {
-  sim <- simulate_netmatch_example()
-  m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
-                method = "dual", kappa = 2, solver = "auto")
-  sens <- netmatch_sensitivity(m, "Y", eta = c(0, 0.03), rho = c(0, 0.5, 1))
-  plot_sensitivity(sens, type = "pvalue")
+sim <- simulate_netmatch_example()
+m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
+              method = "dual", kappa = 2, solver = "auto")
+sens <- netmatch_sensitivity(m, "Y", eta = c(0, 0.03), rho = c(0, 0.5, 1))
+plot_sensitivity(sens, type = "pvalue")
 
-  crit <- critical_sensitivity(m, "Y")
-  plot_sensitivity(crit, type = "critical")
-}
+crit <- critical_sensitivity(m, "Y")
+plot_sensitivity(crit, type = "critical")
 }
 }
