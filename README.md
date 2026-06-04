@@ -1,23 +1,25 @@
 # netmatchRI
 
-`netmatchRI` provides network-constrained matching and randomization inference
-for observational studies where units are connected by a graph. The main design
-is the dual-penalty matched design: close treated-control pairs are excluded,
-and close same-arm units are also prevented from appearing in the same matched
-set.
+`netmatchRI` implements the dual-penalty matching framework from our
+manuscript for observational studies with network dependence. The proposed
+design builds matched sets while imposing two network restrictions: close
+treated-control pairs are excluded, and close same-arm units are prevented
+from appearing in the same matched set. The package also provides the
+manuscript-style randomization-inference and sensitivity-analysis workflow for
+that design.
 
-The exported API is focused on reusable public workflows: simulation,
-network-constrained matching, diagnostics, randomization inference, and
-sensitivity analysis.
+The main exported workflow is centered on dual-penalty matching, diagnostics,
+randomization inference, and sensitivity analysis. Covariate-only and
+single-penalty designs are included as comparison methods.
 
 ## What The Package Does
 
 - `simulate_netmatch_example()` creates a 300-unit strong-dependence example
   data set with an outcome, treatment, covariates, adjacency matrix, graph
   distances, and covariance matrix.
-- `netmatch()` builds a matched design. The core method is
-  `method = "dual"`. `method = "covariate"` and `method = "single"` are
-  comparison designs.
+- `netmatch()` builds the dual-penalty matched design via MIP.
+  `method = "covariate"` and `method = "single"` are comparison designs
+  implemented through `optmatch`.
 - `diagnose_match()` checks covariate balance and within-set network distances.
 - `RI_naive()`, `RI_decay()`, and `RI_design()` run randomization inference.
 - `netmatch_sensitivity()` evaluates p-values over an eta-rho sensitivity grid.
