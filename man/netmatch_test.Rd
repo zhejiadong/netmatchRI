@@ -45,7 +45,7 @@ covariance is \eqn{M_{sk}} when \eqn{d_{sk} <= kappa} and zero otherwise. For
 \code{RI_decay()}, the same bound is multiplied by \eqn{\eta \rho^{d_{sk}-1}}.
 }
 \examples{
-\donttest{
+\dontrun{
 sim <- simulate_netmatch_example()
 m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
               method = "dual", kappa = 2, solver = "auto")

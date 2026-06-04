@@ -29,7 +29,7 @@ Plots either the p-value grid from \code{netmatch_sensitivity()} or the
 critical eta curve from \code{critical_sensitivity()}.
 }
 \examples{
-\donttest{
+\dontrun{
 sim <- simulate_netmatch_example()
 m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
               method = "dual", kappa = 2, solver = "auto")

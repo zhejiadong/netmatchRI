@@ -30,7 +30,7 @@ Evaluates model-assisted randomization inference over an eta-rho grid using the
 matching cutoff \code{kappa} for covariance truncation.
 }
 \examples{
-\donttest{
+\dontrun{
 sim <- simulate_netmatch_example()
 m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
               method = "dual", kappa = 2, solver = "auto")

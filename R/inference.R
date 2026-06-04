@@ -17,7 +17,7 @@
 #'   matched-set `detail`, covariance matrix, matched-set distance matrix,
 #'   analysis `kappa`, and the original `match`.
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' sim <- simulate_netmatch_example()
 #' m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
 #'               method = "dual", kappa = 2, solver = "auto")
@@ -143,7 +143,7 @@ print.netmatch_test <- function(x, ...) {
 #' @return A `netmatch_sensitivity` object with a p-value `grid`, source
 #'   `match`, `outcome` name, and analysis `kappa`.
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' sim <- simulate_netmatch_example()
 #' m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
 #'               method = "dual", kappa = 2, solver = "auto")
@@ -205,7 +205,7 @@ print.netmatch_sensitivity <- function(x, ...) {
 #'   variance component, naive test result, interpretation text, source
 #'   `match`, and `outcome` name.
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' sim <- simulate_netmatch_example()
 #' m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
 #'               method = "dual", kappa = 2, solver = "auto")
@@ -302,7 +302,7 @@ print.netmatch_critical_sensitivity <- function(x, ...) {
 #'   `x` is a grid object and `type = "critical"`.
 #' @return A `ggplot` object.
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' sim <- simulate_netmatch_example()
 #' m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
 #'               method = "dual", kappa = 2, solver = "auto")

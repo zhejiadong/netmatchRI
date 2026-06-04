@@ -32,7 +32,7 @@
 #'   the graph-distance matrix in `network_distance`, a unit-level
 #'   `match_table`, and the raw `solver_result`.
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' sim <- simulate_netmatch_example()
 #' m <- netmatch(
 #'   data = sim$data,

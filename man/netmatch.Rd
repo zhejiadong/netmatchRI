@@ -67,7 +67,7 @@ Builds the dual-penalty matched design via a mixed-integer program. The
 covariate-only and single-penalty comparison designs use \pkg{optmatch}.
 }
 \examples{
-\donttest{
+\dontrun{
 sim <- simulate_netmatch_example()
 
 m <- netmatch(
