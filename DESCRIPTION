@@ -33,10 +33,11 @@ Imports:
     stats,
     utils
 Suggests:
-    gurobi,
     knitr,
     MASS,
     rmarkdown,
     testthat (>= 3.0.0)
+Enhances:
+    gurobi
 VignetteBuilder: knitr
 Config/testthat/edition: 3
