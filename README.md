@@ -221,14 +221,3 @@ workflow.
 | `netmatch_sensitivity()` | p-value `grid`, source `match`, `outcome`, `kappa` |
 | `critical_sensitivity()` | critical `curve`, `naive`, `interpretation` |
 | `plot_sensitivity()` | a `ggplot` object |
-
-## Development Check
-
-From a terminal:
-
-```sh
-R CMD build netmatchRI
-R CMD check netmatchRI_0.0.1.tar.gz --no-manual
-```
-
-A successful check ends with `Status: OK`.
