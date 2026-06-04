@@ -244,6 +244,10 @@ netmatch <- function(data,
     }
   )
   if (!is.null(res)) return(res)
+  if (identical(solver, "glpk") &&
+      grepl("GLPK|usable matched design within the current search limit", last_error, fixed = FALSE)) {
+    stop(last_error, call. = FALSE)
+  }
   stop("No feasible matched design was found. Last solver message: ", last_error, call. = FALSE)
 }
 
@@ -342,8 +346,24 @@ netmatch <- function(data,
       )
     )
   }
+  if (solver == "glpk" && res$status %in% c("INFEASIBLE", "INF_OR_UNBD")) {
+    stop(
+      "GLPK could not produce a matched design within the current search limit. ",
+      "Increase `timelimit` or try `solver = \"gurobi\"`. ",
+      "Last GLPK status: `", res$status, "`.",
+      call. = FALSE
+    )
+  }
   if (res$status %in% c("INFEASIBLE", "INF_OR_UNBD")) {
     stop("MIP model is infeasible.", call. = FALSE)
+  }
+  if (solver == "glpk" && (!res$status %in% c("OPTIMAL", "TIME_LIMIT") || is.null(res$x))) {
+    stop(
+      "GLPK did not return a usable matched design within the current search limit. ",
+      "Increase `timelimit` or try `solver = \"gurobi\"`. ",
+      "Last GLPK status: `", res$status, "`.",
+      call. = FALSE
+    )
   }
   if (!res$status %in% c("OPTIMAL", "TIME_LIMIT") || is.null(res$x)) {
     stop("MIP solver returned status `", res$status, "` without a usable solution.", call. = FALSE)
