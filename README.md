@@ -1,26 +1,34 @@
 # netmatchRI
 
-`netmatchRI` implements the dual-penalty matching framework for observational
-studies with network dependence. The proposed design excludes close
-treated-control pairs and prevents close same-arm units from appearing in the
-same matched set. The package also provides randomization inference and
-sensitivity analysis for the resulting matched design.
-
-Covariate-only and single-penalty designs are included as comparison methods.
+`netmatchRI` implements network-constrained matching and randomization
+inference for observational studies with network dependence. Its main design is
+the dual-penalty matching formulation, which excludes close treated-control
+pairs and prevents close same-arm units from appearing in the same matched set.
+The package also includes covariate-only and single-penalty comparison designs,
+diagnostic summaries, and sensitivity analysis tools.
 
 ## Installation
 
+Install the package directly from GitHub:
+
 ```r
 install.packages("remotes")
+remotes::install_github("zhejiadong/netmatchRI")
+library(netmatchRI)
+```
+
+To install from a local checkout instead:
+
+```r
 remotes::install_local("path/to/netmatchRI")
 library(netmatchRI)
 ```
 
-Installing `netmatchRI` also installs the core R dependencies used by the
-package. Gurobi is optional. When Gurobi is unavailable, `solver = "auto"`
-falls back to the open-source GLPK backend.
+The package installs its required R dependencies automatically. Gurobi is
+optional. When Gurobi is unavailable, `solver = "auto"` falls back to the
+open-source GLPK backend.
 
-## Example
+## Basic workflow
 
 ```r
 sim <- simulate_netmatch_example()
@@ -35,7 +43,9 @@ m_dual <- netmatch(
   solver = "auto"
 )
 
-diagnose_match(m_dual)
+diagnostics <- diagnose_match(m_dual)
+diagnostics$covariate_balance
+diagnostics$network_distance
 
 ri_naive <- RI_naive(m_dual, "Y")
 ri_decay <- RI_decay(m_dual, "Y", eta = 0.03, rho = 0.10)
@@ -54,17 +64,24 @@ plot_sensitivity(sens, type = "pvalue")
 plot_sensitivity(crit, type = "critical")
 ```
 
-If you use your own data, provide one row per unit, a binary treatment column
-such as `Z`, covariate columns such as `X1`, `X2`, `X3`, and an outcome column
-such as `Y` for inference.
+For your own study, supply one row per unit, a binary treatment indicator such
+as `Z`, observed covariates such as `X1`, `X2`, `X3`, an outcome column such as
+`Y`, and a network distance or adjacency representation compatible with
+`netmatch()`.
 
-## Main Functions
+## Main functions
 
-- `netmatch()` builds the dual-penalty matched design via MIP.
+- `netmatch()` builds a matched design under the selected matching method.
 - `diagnose_match()` summarizes covariate balance and within-set network
   distances.
-- `RI_naive()`, `RI_decay()`, and `RI_design()` run randomization inference.
+- `RI_naive()`, `RI_decay()`, and `RI_design()` run randomization inference for
+  matched designs.
 - `netmatch_sensitivity()` evaluates p-values over an `(eta, rho)` grid.
 - `critical_sensitivity()` computes the critical sensitivity curve.
-- `plot_sensitivity()` plots p-value sensitivity curves and critical curves.
-- `simulate_netmatch_example()` provides a built-in 300-unit example.
+- `plot_sensitivity()` plots sensitivity results.
+- `simulate_netmatch_example()` provides a built-in 300-unit example dataset.
+
+## Additional documentation
+
+The package vignette `vignettes/netmatchRI.Rmd` gives a longer walkthrough of
+simulation, matching, inference, and sensitivity analysis.

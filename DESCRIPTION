@@ -8,14 +8,16 @@ Authors@R: c(
   )
 Author: Zhejia Dong [aut, cre], Youjin Lee [aut]
 Maintainer: Zhejia Dong <zhejia_dong@brown.edu>
-Description: User-friendly tools for matching observational data with network
-    dependence and testing sharp null hypotheses by randomization inference.
-    The package centers on a dual-penalty matched design that excludes close
-    treated-control pairs and close same-arm units within matched sets. It also
-    includes comparison matching designs, model-assisted variance bounds,
-    sensitivity grids, a critical sensitivity curve, and a built-in 300-unit
-    strong-dependence simulation example for evaluating the workflow.
+Description: Tools for matching observational data with network dependence
+    and testing sharp null hypotheses by randomization inference. The package
+    centers on a dual-penalty matched design that excludes close treated-control
+    pairs and close same-arm units within matched sets. It also includes
+    comparison matching designs, model-assisted variance bounds, sensitivity
+    grids, a critical sensitivity curve, and a built-in 300-unit
+    strong-dependence simulation example.
 License: MIT + file LICENSE
+URL: https://github.com/zhejiadong/netmatchRI
+BugReports: https://github.com/zhejiadong/netmatchRI/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3

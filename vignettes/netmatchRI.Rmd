@@ -50,14 +50,15 @@ m_dual <- netmatch(
   network = net_dist,
   method = "dual",
   kappa = 2,
-  solver = "gurobi"
+  solver = "auto"
 )
 
 m_dual
 summary(m_dual)
 ```
 
-If Gurobi is unavailable, use `solver = "glpk"` as an open-source backup.
+If Gurobi is installed, `solver = "gurobi"` will use it directly. Otherwise,
+`solver = "auto"` falls back to the open-source GLPK backend.
 
 ## Diagnostics And Inference
 
