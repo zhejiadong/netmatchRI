@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite the associated manuscript."
+title: "netmatchRI"
+authors:
+  - family-names: "Dong"
+    given-names: "Zhejia"
+    email: "zhejia_dong@brown.edu"
+  - family-names: "Lee"
+    given-names: "Youjin"
+preferred-citation:
+  type: article
+  authors:
+    - family-names: "Dong"
+      given-names: "Zhejia"
+    - family-names: "Lee"
+      given-names: "Youjin"
+  title: "Design and Analysis for Valid Causal Inference with Network-Dependent Data"
+  status: "in process"
+repository-code: "https://github.com/zhejiadong/netmatchRI"
+license: "MIT"
