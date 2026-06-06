@@ -1,12 +1,11 @@
 # netmatchRI
 
-`netmatchRI` implements network-constrained matching and randomization
-inference for observational studies with network dependence. Its main design is
-the dual-penalty matching formulation, which excludes close treated-control
-pairs and prevents close same-arm units from appearing in the same matched set.
+`netmatchRI` implements network-penalty matching method and randomization
+inference for observational studies when multiple variables exihibt network dependence. Its main design is
+the dual-penalty matching formulation, which excludes units close in the network to be placed in the same matched set (both within and across treatment arms).
+It also provide the matched-based randomization inference methods to adjust for residual network dependence across matched sets. It provides sensitivity anlaysis for evaluating how robusteness the inferential conclusions sensitive to the strength of network dependece and the critical curves for quantifing the minimal network dependence required for rendering the observed significance as a result of spurious association.
 The package also includes covariate-only and single-penalty comparison designs,
-diagnostic summaries, and sensitivity analysis tools.
-
+diagnostic summaries of matching design.
 ## Installation
 
 Install the package directly from GitHub:
@@ -15,14 +14,7 @@ Install the package directly from GitHub:
 install.packages("remotes")
 remotes::install_github("zhejiadong/netmatchRI")
 library(netmatchRI)
-```
-
-To install from a local checkout instead:
-
-```r
-remotes::install_local("path/to/netmatchRI")
-library(netmatchRI)
-```
+```ß
 
 The package installs its required R dependencies automatically.
 
