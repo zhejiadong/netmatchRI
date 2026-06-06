@@ -14,7 +14,7 @@ Install the package directly from GitHub:
 install.packages("remotes")
 remotes::install_github("zhejiadong/netmatchRI")
 library(netmatchRI)
-```ß
+```
 
 The package installs its required R dependencies automatically.
 
