@@ -24,9 +24,20 @@ remotes::install_local("path/to/netmatchRI")
 library(netmatchRI)
 ```
 
-The package installs its required R dependencies automatically. Gurobi is
-optional. When Gurobi is unavailable, `solver = "auto"` falls back to the
-open-source GLPK backend.
+The package installs its required R dependencies automatically.
+
+## Solver recommendation
+
+We recommend using Gurobi whenever it is available, especially for larger or
+more demanding matching problems. In `netmatchRI`, the simplest way to do that
+is to set `solver = "auto"`: the package will use Gurobi when it is installed
+and licensed, and otherwise fall back to the open-source GLPK backend.
+
+If you want to use Gurobi explicitly, first install the Gurobi Optimizer and
+activate a valid Gurobi license on your machine, then install the `{gurobi}` R
+package following the official Gurobi instructions for your platform. After
+that, you can call `netmatch(..., solver = "gurobi")`. If Gurobi is not
+available, `solver = "auto"` remains the recommended default for portability.
 
 ## Basic workflow
 
@@ -85,3 +96,11 @@ as `Z`, observed covariates such as `X1`, `X2`, `X3`, an outcome column such as
 
 The package vignette `vignettes/netmatchRI.Rmd` gives a longer walkthrough of
 simulation, matching, inference, and sensitivity analysis.
+
+## Citation
+
+If you use this repository or the accompanying methods in your work, please
+cite:
+
+Dong, Z., & Lee, Y. "Design and Analysis for Valid Causal Inference with
+Network-Dependent Data." In process.
