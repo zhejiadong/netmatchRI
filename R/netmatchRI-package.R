@@ -16,8 +16,8 @@
 #' * `critical_sensitivity()` computes the critical eta curve for the
 #'   dual-penalty design.
 #' * `plot_sensitivity()` plots p-value grids or the critical curve.
-#' * `simulate_netmatch_example()` generates one 300-unit strong-dependence
-#'   simulation data set for examples and workflow checks.
+#' * `simulate_netmatch_example()` generates one 300-unit example
+#'   dataset for examples and workflow checks.
 #'
 #' The dual-penalty matching backend uses Gurobi when available and can fall
 #' back to open-source GLPK through `Rglpk`. After installation, use

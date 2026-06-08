@@ -3,7 +3,7 @@
 \alias{RI_decay}
 \alias{RI_design}
 \alias{netmatch_test}
-\title{Randomization Inference for a Network-Matched Design}
+\title{Randomization Inference Given a Matched Design}
 \usage{
 netmatch_test(match, outcome, method = c("decay", "naive", "design"),
   eta = 0.03, rho = 0.10, kappa = NULL,

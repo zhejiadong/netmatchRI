@@ -6,6 +6,7 @@ the dual-penalty matching formulation, which excludes units close in the network
 It also provide the matched-based randomization inference methods to adjust for residual network dependence across matched sets. It provides sensitivity anlaysis for evaluating how robusteness the inferential conclusions sensitive to the strength of network dependece and the critical curves for quantifing the minimal network dependence required for rendering the observed significance as a result of spurious association.
 The package also includes covariate-only and single-penalty comparison designs,
 diagnostic summaries of matching design.
+
 ## Installation
 
 Install the package directly from GitHub:
@@ -82,7 +83,7 @@ as `Z`, observed covariates such as `X1`, `X2`, `X3`, an outcome column such as
 - `netmatch_sensitivity()` evaluates p-values over an `(eta, rho)` grid.
 - `critical_sensitivity()` computes the critical sensitivity curve.
 - `plot_sensitivity()` plots sensitivity results.
-- `simulate_netmatch_example()` provides a built-in 300-unit example dataset.
+- `simulate_netmatch_example()` provides a 300-unit example dataset.
 
 ## Additional documentation
 

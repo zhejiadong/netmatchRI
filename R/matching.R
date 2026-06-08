@@ -28,9 +28,9 @@
 #' @param mipgap Gurobi MIP gap.
 #' @param threads Number of Gurobi threads.
 #' @return A `netmatch` object, which is a list with matched `data`, treatment
-#'   and covariate names, `method`, `method_label`, `kappa`, solver backend,
-#'   the graph-distance matrix in `network_distance`, a unit-level
-#'   `match_table`, and the raw `solver_result`.
+#'   and covariate names, `method`, `kappa`, `solver` used for solving the
+#'   matching problem, the unit-level network distance matrix in
+#'   `network_distance`, and the raw `solver_result`.
 #' @examples
 #' \dontrun{
 #' sim <- simulate_netmatch_example()
@@ -115,11 +115,9 @@ netmatch <- function(data,
     treat = treat,
     covariates = covariates,
     method = method,
-    method_label = .method_label(method),
     kappa = kappa,
     solver = solver_used,
     network_distance = unit_dist,
-    match_table = matched$table,
     solver_result = matched$solver_result
   )
   class(out) <- "netmatch"
@@ -200,12 +198,7 @@ netmatch <- function(data,
   matched <- data[keep, , drop = FALSE]
   matched$subclass <- factor(subclass[keep])
   rownames(matched) <- which(keep)
-  tab <- data.frame(
-    subclass = as.integer(matched$subclass),
-    unit = as.integer(rownames(matched)),
-    treat = z[as.integer(rownames(matched))]
-  )
-  list(data = matched, table = tab, solver_result = fm)
+  list(data = matched, solver_result = fm)
 }
 
 .solve_network_match <- function(data,
@@ -336,15 +329,13 @@ netmatch <- function(data,
   if (solver == "glpk") {
     res <- .solve_roi_glpk(model, timelimit = timelimit)
   } else {
-    res <- gurobi::gurobi(
-      model,
-      params = list(
-        TimeLimit = timelimit,
-        MIPGap = mipgap,
-        Threads = as.integer(max(1, threads)),
-        OutputFlag = 0
-      )
+    params <- list(
+      TimeLimit = timelimit,
+      MIPGap = mipgap,
+      Threads = as.integer(max(1, threads)),
+      OutputFlag = 0
     )
+    res <- gurobi::gurobi(model, params = params)
   }
   if (solver == "glpk" && res$status %in% c("INFEASIBLE", "INF_OR_UNBD")) {
     stop(
@@ -375,12 +366,7 @@ netmatch <- function(data,
   matched <- data[keep_units, , drop = FALSE]
   matched$subclass <- factor(subclass[keep_units])
   rownames(matched) <- which(keep_units)
-  tab <- data.frame(
-    subclass = as.integer(matched$subclass),
-    unit = as.integer(rownames(matched)),
-    treat = z[as.integer(rownames(matched))]
-  )
-  list(data = matched, table = tab, solver_result = res)
+  list(data = matched, solver_result = res)
 }
 
 .solve_roi_glpk <- function(model, timelimit) {
@@ -456,7 +442,6 @@ netmatch <- function(data,
       if (is.finite(maxT_per_C)) add_row(cols, rep(1, length(cols)), "<=", maxT_per_C)
     }
   }
-
   cc_pairs <- lapply(seq_len(nT), function(t) {
     cp <- cc_pairs_list[[t]]
     if (is.null(cp) || !nrow(cp)) return(NULL)
@@ -536,7 +521,7 @@ netmatch <- function(data,
 #' @export
 print.netmatch <- function(x, ...) {
   cat("<netmatch>\n")
-  cat("  Method: ", x$method_label, "\n", sep = "")
+  cat("  Method: ", x$method, "\n", sep = "")
   cat("  Kappa: ", x$kappa, "\n", sep = "")
   cat("  Solver: ", x$solver, "\n", sep = "")
   cat("  Matched units: ", nrow(x$data), "\n", sep = "")
@@ -576,6 +561,6 @@ plot.netmatch <- function(x, ...) {
                     names.arg = diag$within_distance_table$distance,
                     xlab = "Network distance",
                     ylab = "Within-set proportion",
-                    main = x$method_label)
+                    main = x$method)
   invisible(diag)
 }

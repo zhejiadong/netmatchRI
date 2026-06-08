@@ -1,21 +1,29 @@
 #' Simulate the 300-Unit Network-Matching Example
 #'
-#' Generates one data set from the built-in strong-dependence simulation design:
-#' a fixed 300-unit stochastic block network,
-#' network-dependent covariates, treatment, and outcome. This helper is
-#' intended for package evaluation and examples, especially when searching for
-#' seeds that illustrate the sensitivity analysis.
+#' Generates one data set from the built-in simulation design: a fixed
+#' stochastic block network, network-dependent covariates, treatment, and
+#' outcome. The default values reproduce the package illustration.
 #'
-#' @param seed Random seed for the covariates, treatment, and outcome.
+#' @param seed Random seed for the simulation.
 #' @param beta_z Treatment effect in the outcome model.
 #' @param n Number of units. The built-in example uses 300.
-#' @return A list with the simulated `data`, fixed adjacency matrix `Adj`,
-#'   graph-distance matrix `net_dist`, strong-dependence covariance matrix
-#'   `V`, simulation `seed`, fixed `dep_index = 3`, and `beta_z`.
+#' @param alpha1 Dependence strength in `[0, 1]`; larger values induce stronger
+#'   network dependence.
+#' @param alpha2 Individual variation in `[0, 1]` independent of the network.
+#' @param pin Within-block edge probability for the stochastic block network.
+#' @param pout Between-block edge probability for the stochastic block network.
+#' @return A list with the simulated `data`, `Adj` (an `n` by `n` adjacency
+#'   matrix for the fixed network), graph-distance matrix `net_dist`, `V`
+#'   (variance-covariance matrix), simulation `seed`, `beta_z`, `alpha1`,
+#'   `alpha2`, `pin`, and `pout`.
 #' @export
 simulate_netmatch_example <- function(seed = 90141,
                                       beta_z = 0,
-                                      n = 300) {
+                                      n = 300,
+                                      alpha1 = 0.9,
+                                      alpha2 = 0.1,
+                                      pin = 0.19,
+                                      pout = 0.003) {
   if (!requireNamespace("igraph", quietly = TRUE)) {
     stop("Package `igraph` is required for simulation.", call. = FALSE)
   }
@@ -23,9 +31,12 @@ simulate_netmatch_example <- function(seed = 90141,
     stop("Package `mvtnorm` is required for simulation.", call. = FALSE)
   }
   if (n %% 4 != 0) stop("`n` must be divisible by 4.", call. = FALSE)
+  .check_unit_interval(alpha1, "alpha1")
+  .check_unit_interval(alpha2, "alpha2")
+  .check_unit_interval(pin, "pin")
+  .check_unit_interval(pout, "pout")
 
-  dep_index <- 3
-  setup <- .strong_simulation_setup(n)
+  setup <- .strong_simulation_setup(n, pin = pin, pout = pout, alpha1 = alpha1, alpha2 = alpha2)
   V <- setup$V
 
   beta_x <- matrix(c(0.1, 0.1, 0.1), nrow = 3, ncol = 1)
@@ -50,24 +61,32 @@ simulate_netmatch_example <- function(seed = 90141,
     net_dist = setup$net_dist,
     V = V,
     seed = seed,
-    dep_index = dep_index,
-    beta_z = beta_z
+    beta_z = beta_z,
+    alpha1 = alpha1,
+    alpha2 = alpha2,
+    pin = pin,
+    pout = pout
   )
+}
+
+.check_unit_interval <- function(x, name) {
+  if (!is.numeric(x) || length(x) != 1 || !is.finite(x) || x < 0 || x > 1) {
+    stop(sprintf("`%s` must be one number in [0, 1].", name), call. = FALSE)
+  }
+  invisible(TRUE)
 }
 
 .netmatch_sim_cache <- new.env(parent = emptyenv())
 
-.strong_simulation_setup <- function(n) {
-  key <- paste0("strong_", n)
+.strong_simulation_setup <- function(n, pin, pout, alpha1, alpha2) {
+  key <- paste("strong", n, pin, pout, alpha1, alpha2, sep = "_")
   if (exists(key, envir = .netmatch_sim_cache, inherits = FALSE)) {
     return(get(key, envir = .netmatch_sim_cache, inherits = FALSE))
   }
   n_blocks <- 4
   block_sizes <- rep(n / n_blocks, n_blocks)
-  p_in <- 0.19
-  p_out <- 0.003
-  pm <- matrix(p_out, nrow = n_blocks, ncol = n_blocks)
-  diag(pm) <- p_in
+  pm <- matrix(pout, nrow = n_blocks, ncol = n_blocks)
+  diag(pm) <- pin
 
   set.seed(2026)
   g <- igraph::sample_sbm(
@@ -79,13 +98,11 @@ simulate_netmatch_example <- function(seed = 90141,
   Adj <- as.matrix(igraph::as_adjacency_matrix(g))
   net_dist <- igraph::distances(g)
 
-  kappa_strong <- 0.9
-  alpha_strong <- 0.1
   W <- .make_W_row_standardized(Adj)
   V <- .scale_to_unit_diag(.generate_V_W_step2(
     W,
-    kappa = kappa_strong,
-    alpha = alpha_strong,
+    alpha1 = alpha1,
+    alpha2 = alpha2,
     addI = 0.001
   ))
   setup <- list(Adj = Adj, net_dist = net_dist, V = V)
@@ -108,9 +125,9 @@ simulate_netmatch_example <- function(seed = 90141,
   V / (d %o% d)
 }
 
-.generate_V_W_step2 <- function(W, kappa, alpha, addI = 0.001) {
+.generate_V_W_step2 <- function(W, alpha1, alpha2, addI = 0.001) {
   n <- nrow(W)
-  B <- alpha * diag(n) + kappa * W
+  B <- alpha2 * diag(n) + alpha1 * W
   B %*% t(B) + addI * diag(n)
 }
 

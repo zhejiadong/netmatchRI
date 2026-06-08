@@ -1,4 +1,4 @@
-#' Randomization Inference for a Network-Matched Design
+#' Randomization Inference Given a Matched Design
 #'
 #' `RI_naive()`, `RI_decay()`, and `RI_design()` run normal-approximation
 #' randomization inference for a `netmatch` object. `RI_design()` keeps the
@@ -41,11 +41,17 @@ netmatch_test <- function(match,
   kappa <- .analysis_kappa(match, kappa)
 
   obs <- .observed_stats(match$data, outcome, match$treat, "subclass", weight_type)
-  unit_ids <- as.integer(rownames(match$data))
-  set_dist <- .set_distance_matrix(match$network_distance, as.integer(match$data$subclass), unit_ids)
-  Sigma <- .covariance_matrix(obs$detail, set_dist, method, eta, rho, kappa)
   w <- obs$detail$weight
-  variance <- as.numeric(t(w) %*% Sigma %*% w)
+  if (method == "naive") {
+    set_dist <- .empty_set_distance(obs$detail$subclass)
+    Sigma <- .naive_covariance_matrix(obs$detail)
+    variance <- sum((w^2) * obs$detail$var)
+  } else {
+    unit_ids <- as.integer(rownames(match$data))
+    set_dist <- .set_distance_matrix(match$network_distance, as.integer(match$data$subclass), unit_ids)
+    Sigma <- .covariance_matrix(obs$detail, set_dist, method, eta, rho, kappa)
+    variance <- as.numeric(t(w) %*% Sigma %*% w)
+  }
   pv <- .normal_pvalue(obs$statistic, obs$expectation, variance)
 
   result <- data.frame(

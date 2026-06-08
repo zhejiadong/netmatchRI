@@ -1,6 +1,6 @@
-# 300-unit strong-dependence example matching the original simulation setup.
-# This mirrors code/All in use/simulation with dep_indx = 3 and i = 18.
-# The implied seed is 123 + 18 + 0 * 1000 + 0.9 * 1e5 = 90141.
+# 300-unit example using the default simulation setup.
+# This mirrors the package illustration with i = 18.
+# The implied seed is 90141.
 
 library(netmatchRI)
 
@@ -10,8 +10,11 @@ Adj <- sim$Adj
 net_dist <- sim$net_dist
 V <- sim$V
 
-cat("Strong-dependence simulation generated.\n")
-cat("dep_indx:", sim$dep_index, "\n")
+cat("Default simulation generated.\n")
+cat("alpha1:", sim$alpha1, "\n")
+cat("alpha2:", sim$alpha2, "\n")
+cat("pin:", sim$pin, "\n")
+cat("pout:", sim$pout, "\n")
 cat("i_sim:", 18, "\n")
 cat("seed:", sim$seed, "\n")
 cat("treated:", sum(sim_dat$Z), "of", nrow(sim_dat), "\n")

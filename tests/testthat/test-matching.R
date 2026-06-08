@@ -42,6 +42,8 @@ test_that("dual penalty uses Gurobi and covers all units when feasible", {
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "dual", kappa = 2)
   expect_equal(m$solver, "gurobi")
+  expect_false("method_label" %in% names(m))
+  expect_false("match_table" %in% names(m))
   expect_equal(sort(as.integer(rownames(m$data))), 1:4)
 })
 

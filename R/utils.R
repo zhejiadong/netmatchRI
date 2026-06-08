@@ -86,12 +86,3 @@
   ids_c <- which(treat == 0)
   D[ids_t, ids_c, drop = FALSE]
 }
-
-.method_label <- function(method) {
-  switch(method,
-    covariate = "Covariates only",
-    single = "Single penalty",
-    dual = "Dual penalty",
-    method
-  )
-}

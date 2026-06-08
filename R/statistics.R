@@ -39,6 +39,17 @@
   )
 }
 
+.empty_set_distance <- function(sets) {
+  sets <- sort(unique(sets))
+  matrix(0, length(sets), length(sets), dimnames = list(sets, sets))
+}
+
+.naive_covariance_matrix <- function(stats_df) {
+  Sigma <- matrix(0, nrow(stats_df), nrow(stats_df), dimnames = list(stats_df$subclass, stats_df$subclass))
+  diag(Sigma) <- stats_df$var
+  Sigma
+}
+
 .design_cov_bound <- function(nt_s, nc_s, nt_k, nc_k) {
   grid <- seq(0.0001, 0.9999, length.out = 10000)
   q_s <- stats::qwilcox(grid, m = nt_s, n = nc_s)
@@ -67,10 +78,19 @@
   bound <- matrix(0, S, S)
   diag(bound) <- stats_df$var
   if (S < 2) return(list(bound = bound, set_dist = set_dist, kappa = kappa))
+  cov_cache <- new.env(parent = emptyenv())
   for (i in seq_len(S - 1)) {
     for (j in (i + 1):S) {
-      val <- .design_cov_bound(stats_df$nt[i], stats_df$nc[i], stats_df$nt[j], stats_df$nc[j])
-      if (!is.finite(set_dist[i, j]) || set_dist[i, j] > kappa) val <- 0
+      if (!is.finite(set_dist[i, j]) || set_dist[i, j] > kappa) next
+      key_i <- paste(stats_df$nt[i], stats_df$nc[i], sep = ":")
+      key_j <- paste(stats_df$nt[j], stats_df$nc[j], sep = ":")
+      key <- paste(sort(c(key_i, key_j)), collapse = "|")
+      if (exists(key, envir = cov_cache, inherits = FALSE)) {
+        val <- get(key, envir = cov_cache, inherits = FALSE)
+      } else {
+        val <- .design_cov_bound(stats_df$nt[i], stats_df$nc[i], stats_df$nt[j], stats_df$nc[j])
+        assign(key, val, envir = cov_cache)
+      }
       bound[i, j] <- bound[j, i] <- val
     }
   }

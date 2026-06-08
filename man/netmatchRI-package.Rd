@@ -23,8 +23,7 @@ parameters.
 for the dual-penalty design.
 \item \code{\link{plot_sensitivity}()} plots p-value grids or the critical
 curve.
-\item \code{\link{simulate_netmatch_example}()} generates one 300-unit
-strong-dependence simulation data set for examples and workflow checks.
+\item \code{\link{simulate_netmatch_example}()} generates one 300-unit example dataset for examples and workflow checks.
 }
 
 The dual-penalty matching backend uses Gurobi when available and can fall back

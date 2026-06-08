@@ -47,11 +47,9 @@ For \code{netmatch()}, a \code{netmatch} object, which is a list with:
 \item \code{treat}: treatment column name.
 \item \code{covariates}: covariates used for matching.
 \item \code{method}: matching method used.
-\item \code{method_label}: human-readable method label.
 \item \code{kappa}: graph-distance cutoff used by the design.
-\item \code{solver}: backend used for matching.
-\item \code{network_distance}: graph-distance matrix used by the analysis.
-\item \code{match_table}: unit-level table with subclass and treatment.
+\item \code{solver}: solver used for solving the matching problem.
+\item \code{network_distance}: unit-level network distance matrix.
 \item \code{solver_result}: raw solver or \pkg{optmatch} result.
 }
 

@@ -14,7 +14,7 @@ Description: Tools for matching observational data with network dependence
     pairs and close same-arm units within matched sets. It also includes
     comparison matching designs, model-assisted variance bounds, sensitivity
     grids, a critical sensitivity curve, and a built-in 300-unit
-    strong-dependence simulation example.
+    example dataset.
 License: MIT + file LICENSE
 URL: https://github.com/zhejiadong/netmatchRI
 BugReports: https://github.com/zhejiadong/netmatchRI/issues
