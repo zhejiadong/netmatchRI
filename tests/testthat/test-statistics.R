@@ -1,3 +1,13 @@
+test_that("adjacency matrices are converted with igraph distances", {
+  A <- matrix(0, 4, 4)
+  A[cbind(1:3, 2:4)] <- 1
+  A[cbind(2:4, 1:3)] <- 1
+  D <- netmatchRI:::.as_network_distance(A)
+  expect_equal(D[1, 4], 3)
+  expect_equal(D[1, 3], 2)
+  expect_equal(diag(D), rep(0, 4))
+})
+
 test_that("RI helpers return tidy inference output", {
   A <- matrix(0, 8, 8)
   A[cbind(1:7, 2:8)] <- 1
@@ -84,6 +94,25 @@ test_that("design covariance truncates at kappa", {
   expect_gt(Sigma[1, 2], 0)
   expect_equal(Sigma[1, 3], 0)
   expect_equal(Sigma[2, 3], 0)
+})
+
+test_that("sensitivity grid matches repeated RI_decay calls", {
+  D <- matrix(4, 8, 8)
+  diag(D) <- 0
+  dat <- data.frame(
+    Z = c(1, 1, 1, 1, 0, 0, 0, 0),
+    X1 = c(0, 1, 2, 3, 0.1, 1.1, 2.1, 3.1),
+    X2 = c(1, 1, 2, 2, 1.2, 1.1, 2.2, 2.1),
+    Y = c(8, 7, 6, 5, 1, 2, 3, 4)
+  )
+  m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "covariate", kappa = 2)
+  sens <- netmatch_sensitivity(m, "Y", eta = c(0, 0.03), rho = c(0.1, 0.5))
+  expected <- do.call(rbind, lapply(seq_len(nrow(sens$grid)), function(i) {
+    RI_decay(m, "Y", eta = sens$grid$eta[i], rho = sens$grid$rho[i])$result
+  }))
+  rownames(expected) <- NULL
+  rownames(sens$grid) <- NULL
+  expect_equal(sens$grid, expected)
 })
 
 test_that("critical sensitivity returns one curve and reaches alpha", {

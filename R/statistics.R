@@ -123,6 +123,21 @@
   Sigma
 }
 
+.weighted_variance_from_components <- function(components, weights, method, eta = 1, rho = 1) {
+  bound <- components$bound
+  diag_var <- sum((weights^2) * diag(bound))
+  S <- nrow(bound)
+  if (S < 2 || method == "naive") return(diag_var)
+  pair_idx <- which(upper.tri(bound) & bound != 0, arr.ind = TRUE)
+  if (!nrow(pair_idx)) return(diag_var)
+  off_diag <- 2 * weights[pair_idx[, 1]] * weights[pair_idx[, 2]] * bound[pair_idx]
+  if (method == "decay") {
+    set_dist <- components$set_dist[pair_idx]
+    off_diag <- off_diag * eta * rho^(set_dist - 1)
+  }
+  diag_var + sum(off_diag)
+}
+
 .normal_pvalue <- function(statistic, expectation, variance) {
   if (!is.finite(variance) || variance <= 0) {
     return(list(z = NA_real_, p = NA_real_))

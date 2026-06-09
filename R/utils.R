@@ -22,19 +22,12 @@
   if (!is_adjacency) {
     return(network)
   }
-
-  .floyd_warshall(network)
-}
-
-.floyd_warshall <- function(adj) {
-  n <- nrow(adj)
-  d <- matrix(Inf, n, n)
-  d[adj > 0] <- 1
-  diag(d) <- 0
-  for (k in seq_len(n)) {
-    d <- pmin(d, outer(d[, k], d[k, ], "+"))
+  if (!requireNamespace("igraph", quietly = TRUE)) {
+    stop("Package `igraph` is required to convert adjacency matrices to network distances.", call. = FALSE)
   }
-  d
+
+  g <- igraph::graph_from_adjacency_matrix(network, mode = "undirected", diag = FALSE)
+  igraph::distances(g)
 }
 
 .safe_inverse <- function(S) {

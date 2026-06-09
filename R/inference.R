@@ -168,20 +168,36 @@ netmatch_sensitivity <- function(match,
                                  rho = seq(0, 0.50, by = 0.05),
                                  kappa = NULL,
                                  weight_type = c("ns", "ntc")) {
+  if (!inherits(match, "netmatch")) {
+    stop("`match` must be a netmatch object.", call. = FALSE)
+  }
   weight_type <- match.arg(weight_type)
   kappa <- .analysis_kappa(match, kappa)
+  if (!outcome %in% names(match$data)) stop("`outcome` column not found.", call. = FALSE)
+
+  obs <- .observed_stats(match$data, outcome, match$treat, "subclass", weight_type)
+  unit_ids <- as.integer(rownames(match$data))
+  set_dist <- .set_distance_matrix(match$network_distance, as.integer(match$data$subclass), unit_ids)
+  components <- .variance_components(obs$detail, set_dist, kappa)
+  w <- obs$detail$weight
+
   grid <- expand.grid(eta = eta, rho = rho, KEEP.OUT.ATTRS = FALSE)
   rows <- vector("list", nrow(grid))
   for (i in seq_len(nrow(grid))) {
-    fit <- RI_decay(
-      match = match,
-      outcome = outcome,
+    variance <- .weighted_variance_from_components(components, w, "decay", grid$eta[i], grid$rho[i])
+    pv <- .normal_pvalue(obs$statistic, obs$expectation, variance)
+    rows[[i]] <- data.frame(
+      method = "decay",
       eta = grid$eta[i],
       rho = grid$rho[i],
       kappa = kappa,
-      weight_type = weight_type
+      statistic = obs$statistic,
+      expectation = obs$expectation,
+      variance = variance,
+      z_score = pv$z,
+      p_value = pv$p,
+      stringsAsFactors = FALSE
     )
-    rows[[i]] <- fit$result
   }
   out <- list(grid = do.call(rbind, rows), match = match, outcome = outcome, kappa = kappa)
   class(out) <- "netmatch_sensitivity"
