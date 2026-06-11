@@ -80,7 +80,7 @@ rbind(ri_naive$result, ri_decay$result, ri_design$result)
 sens <- netmatch_sensitivity(
   m_dual,
   "Y",
-  eta = c(0, 0.01, 0.02, 0.03, 0.05),
+  eta = seq(0, 0.05, by = 0.01),
   rho = seq(0, 1, by = 0.05)
 )
 

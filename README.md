@@ -58,7 +58,7 @@ ri_design <- RI_design(m_dual, "Y")
 sens <- netmatch_sensitivity(
   m_dual,
   "Y",
-  eta = c(0, 0.01, 0.03),
+  eta = seq(0, 0.03, by = 0.01),
   rho = seq(0, 1, by = 0.1)
 )
 

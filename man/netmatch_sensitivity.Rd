@@ -37,8 +37,8 @@ m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
 sens <- netmatch_sensitivity(
   m,
   "Y",
-  eta = c(0, 0.01, 0.03),
-  rho = c(0, 0.25, 0.50)
+  eta = seq(0, 0.03, by = 0.01),
+  rho = seq(0, 0.50, by = 0.25)
 )
 sens$grid
 }

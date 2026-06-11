@@ -42,8 +42,8 @@ print(fit_design)
 sens <- netmatch_sensitivity(
   m_dual,
   "Y",
-  eta = c(0.01, 0.05, 0.10, 0.15, 0.20, 0.30, 0.40),
-  rho = c(0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60)
+  eta = seq(0, 0.40, by = 0.05),
+  rho = seq(0, 0.60, by = 0.05)
 )
 crit <- critical_sensitivity(m_dual, "Y")
 

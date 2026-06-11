@@ -106,7 +106,7 @@ test_that("sensitivity grid matches repeated RI_decay calls", {
     Y = c(8, 7, 6, 5, 1, 2, 3, 4)
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "covariate", kappa = 2)
-  sens <- netmatch_sensitivity(m, "Y", eta = c(0, 0.03), rho = c(0.1, 0.5))
+  sens <- netmatch_sensitivity(m, "Y", eta = seq(0, 0.03, by = 0.03), rho = seq(0.1, 0.5, by = 0.4))
   expected <- do.call(rbind, lapply(seq_len(nrow(sens$grid)), function(i) {
     RI_decay(m, "Y", eta = sens$grid$eta[i], rho = sens$grid$rho[i])$result
   }))
@@ -126,7 +126,7 @@ test_that("critical sensitivity returns one curve and reaches alpha", {
     Y = c(8, 7, 6, 5, 1, 2, 3, 4)
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "dual", kappa = 2)
-  crit <- critical_sensitivity(m, "Y", rho = c(0.1, 0.5), alpha = 0.05)
+  crit <- critical_sensitivity(m, "Y", rho = seq(0.1, 0.5, by = 0.4), alpha = 0.05)
   expect_s3_class(crit, "netmatch_critical_sensitivity")
   expect_equal(nrow(crit$curve), 2)
   eta_star <- crit$curve$eta_critical[is.finite(crit$curve$eta_critical) & crit$curve$eta_critical > 0][1]
@@ -147,7 +147,7 @@ test_that("critical sensitivity does not report negative eta boundaries", {
     Y = c(3, 4, 5, 6, 2, 3, 4, 5)
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "covariate", kappa = 2)
-  crit <- suppressWarnings(critical_sensitivity(m, "Y", rho = c(0.1, 0.5)))
+  crit <- suppressWarnings(critical_sensitivity(m, "Y", rho = seq(0.1, 0.5, by = 0.4)))
   expect_true(all(is.na(crit$curve$eta_critical) | crit$curve$eta_critical >= 0))
   expect_equal(names(crit$curve), c("rho", "eta_critical"))
 })
@@ -164,8 +164,8 @@ test_that("sensitivity plots return ggplot objects", {
     Y = c(8, 7, 6, 5, 1, 2, 3, 4)
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), A, method = "covariate", kappa = 2)
-  sens <- netmatch_sensitivity(m, "Y", eta = c(0, 0.1), rho = c(0.1, 0.5))
-  crit <- suppressWarnings(critical_sensitivity(m, "Y", rho = c(0.1, 0.5)))
+  sens <- netmatch_sensitivity(m, "Y", eta = seq(0, 0.1, by = 0.1), rho = seq(0.1, 0.5, by = 0.4))
+  crit <- suppressWarnings(critical_sensitivity(m, "Y", rho = seq(0.1, 0.5, by = 0.4)))
   expect_s3_class(plot_sensitivity(sens, type = "pvalue"), "ggplot")
   expect_s3_class(plot_sensitivity(crit, type = "critical"), "ggplot")
   expect_s3_class(plot_sensitivity(crit, type = "critical", critical_ylim = c(0, 1)), "ggplot")
