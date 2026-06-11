@@ -373,8 +373,8 @@ plot.netmatch_critical_sensitivity <- function(x, ...) {
 
 .plot_pvalue_sensitivity <- function(x, alpha, naive = NULL) {
   grid <- x$grid
-  grid$eta_label <- factor(sprintf("eta=%.2f", grid$eta),
-                           levels = sprintf("eta=%.2f", sort(unique(grid$eta))))
+  grid$eta_label <- factor(sprintf("%.2f", grid$eta),
+                           levels = sprintf("%.2f", sort(unique(grid$eta))))
   p <- ggplot2::ggplot(grid, ggplot2::aes(x = rho, y = p_value, colour = eta_label, group = eta_label)) +
     ggplot2::geom_line(linewidth = 0.8) +
     ggplot2::geom_point(size = 2) +
@@ -412,8 +412,8 @@ plot.netmatch_critical_sensitivity <- function(x, ...) {
     ggplot2::labs(
       x = expression(rho),
       y = expression(eta^"*"),
-      title = "Critical sensitivity curve",
-      subtitle = paste0("Dual-penalty design, alpha = ", x$alpha, ", kappa = ", x$kappa)
+      title = NULL,
+      subtitle = NULL
     ) +
     ggplot2::theme_bw() +
     ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
