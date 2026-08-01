@@ -1,16 +1,16 @@
 Package: netmatchRI
-Title: Network-Constrained Matching and Randomization Inference
+Title: Dual-Penalty Matching and Randomization-Based Inference
 Version: 0.1.0
 Authors@R: person("Zhejia", "Dong", role = c("aut", "cre"),
     email = "zhejia_dong@brown.edu")
 Author: Zhejia Dong [aut, cre]
 Maintainer: Zhejia Dong <zhejia_dong@brown.edu>
-Description: Tools for matching observational data with network dependence
-    and testing sharp null hypotheses by randomization inference. The package
-    centers on a dual-penalty matched design that excludes close treated-control
-    pairs and close same-arm units within matched sets. It also includes
-    comparison matching designs, model-assisted variance bounds, sensitivity
-    grids, a critical sensitivity curve, and a built-in 300-unit
+Description: Implements dual-penalty matching and randomization-based inference
+    for observational network data with network dependence and interference.
+    The dual-penalty matched design incorporates network proximity across
+    treatment arms and among units assigned to the same matched sets. It also
+    includes comparison matching designs, design-based variance bounds,
+    sensitivity analysis, critical sensitivity curves, and a built-in 300-unit
     example dataset. An optional interface to the commercial 'Gurobi Optimizer'
     is available when its separately distributed R package and a valid license
     are installed.

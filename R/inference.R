@@ -1,19 +1,20 @@
-#' Randomization Inference Given a Matched Design
+#' Randomization-Based Inference Given a Matched Design
 #'
 #' `RI_naive()`, `RI_decay()`, and `RI_design()` run normal-approximation
-#' randomization inference for a `netmatch` object. `RI_design()` keeps the
-#' distance truncation at `kappa`: across-set covariance is set to zero whenever
-#' the matched-set distance is greater than `kappa`.
+#' randomization-based inference for a `netmatch` object. `RI_decay()` supports
+#' sensitivity analysis, while `RI_design()` provides the design-based analysis
+#' and keeps the distance truncation at `kappa`: across-set covariance is set to
+#' zero whenever the matched-set distance is greater than `kappa`.
 #'
 #' @param match A `netmatch` object.
 #' @param outcome Name of the outcome column.
 #' @param method Variance method: `"decay"`, `"naive"`, or `"design"`.
-#' @param eta Decay magnitude for model-assisted bounds.
-#' @param rho Decay rate for model-assisted bounds.
+#' @param eta Magnitude parameter for sensitivity analysis.
+#' @param rho Decay-rate parameter for sensitivity analysis.
 #' @param kappa Analysis cutoff. Defaults to the matching cutoff stored in
 #'   `match$kappa`.
 #' @param weight_type Weighting scheme for matched-set U-statistics.
-#' @return A randomization-inference result object with a one-row `result` data frame,
+#' @return A randomization-based inference result object with a one-row `result` data frame,
 #'   matched-set `detail`, covariance matrix, matched-set distance matrix,
 #'   analysis `kappa`, and the original `match`.
 #' @examples
@@ -134,10 +135,9 @@ print.netmatch_test <- function(x, ...) {
   invisible(x)
 }
 
-#' Sensitivity Grid for Model-Assisted Network Dependence
+#' Sensitivity Analysis for Network Dependence
 #'
-#' Evaluates `RI_decay()` over a grid of eta and rho
-#' values.
+#' Evaluates sensitivity analysis results over a grid of eta and rho values.
 #'
 #' @param match A `netmatch` object.
 #' @param outcome Name of the outcome column.
@@ -214,7 +214,7 @@ print.netmatch_sensitivity <- function(x, ...) {
 #' Critical Sensitivity Curve for Dual-Penalty Matching
 #'
 #' Computes the critical value of eta as a function of rho that solves
-#' `p(eta, rho) = alpha` for the model-assisted decay bound.
+#' `p(eta, rho) = alpha` for the sensitivity analysis.
 #'
 #' @param match A `netmatch` object, ideally from `method = "dual"`.
 #' @param outcome Name of the outcome column.
@@ -316,7 +316,7 @@ print.netmatch_critical_sensitivity <- function(x, ...) {
 #' @param x A `netmatch_sensitivity` or `netmatch_critical_sensitivity` object.
 #' @param type Plot type: `"critical"` or `"pvalue"`.
 #' @param alpha Test level for the reference line.
-#' @param naive Optional naive p-value or randomization-inference result object.
+#' @param naive Optional naive p-value or randomization-based inference result object.
 #' @param critical_ylim Optional y-axis limits for `type = "critical"`.
 #'   Defaults to an adaptive range that starts at zero. Use `c(0, 1)` to force
 #'   the full sensitivity-parameter range.

@@ -3,7 +3,7 @@
 \alias{RI_decay}
 \alias{RI_design}
 \alias{netmatch_test}
-\title{Randomization Inference Given a Matched Design}
+\title{Randomization-Based Inference Given a Matched Design}
 \usage{
 netmatch_test(match, outcome, method = c("decay", "naive", "design"),
   eta = 0.03, rho = 0.10, kappa = NULL,
@@ -20,8 +20,8 @@ RI_design(match, outcome, kappa = NULL, weight_type = c("ns", "ntc"))
 \item{match}{A \code{netmatch} object.}
 \item{outcome}{Name of the outcome column.}
 \item{method}{Variance method used internally by \code{netmatch_test()}.}
-\item{eta}{Decay magnitude for model-assisted bounds.}
-\item{rho}{Decay rate for model-assisted bounds.}
+\item{eta}{Magnitude parameter for sensitivity analysis.}
+\item{rho}{Decay-rate parameter for sensitivity analysis.}
 \item{kappa}{Analysis cutoff. Defaults to the matching cutoff stored in
 \code{match$kappa}.}
 \item{weight_type}{Weighting scheme for matched-set U-statistics.}
@@ -39,8 +39,10 @@ test statistic, null expectation, variance, z-score, and p-value.
 }
 }
 \description{
-Runs normal-approximation randomization inference for a matched design.
-\code{RI_design()} keeps the distance truncation at \code{kappa}: across-set
+Runs normal-approximation randomization-based inference for a matched design.
+\code{RI_decay()} supports sensitivity analysis, while \code{RI_design()}
+provides the design-based analysis and keeps the distance truncation at
+\code{kappa}: across-set
 covariance is \eqn{M_{sk}} when \eqn{d_{sk} <= kappa} and zero otherwise. For
 \code{RI_decay()}, the same bound is multiplied by \eqn{\eta \rho^{d_{sk}-1}}.
 }

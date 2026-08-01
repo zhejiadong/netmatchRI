@@ -1,8 +1,8 @@
 ---
-title: "Using netmatchRI"
+title: "Using netmatchRI for Observational Network Data"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Using netmatchRI}
+  %\VignetteIndexEntry{Using netmatchRI for Observational Network Data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,10 +11,8 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-`netmatchRI` supports network-constrained matching and randomization inference
-for observational data with possible graph dependence. The main workflow uses
-the dual-penalty matched design.
-
+`netmatchRI` implements dual-penalty matching and randomization-based inference
+for observational network data with network dependence and interference.
 ## Inspect The Package
 
 ```{r, eval = FALSE}
@@ -36,9 +34,9 @@ table(dat$Z)
 summary(lm(Y ~ Z, data = dat))$coefficients
 ```
 
-For your own study, use a data frame with one row per unit, a binary treatment
-column such as `Z`, covariates such as `X1`, `X2`, `X3`, and an outcome column
-such as `Y` for inference.
+For your own observational network data, use a data frame with one row per
+unit, a binary treatment column such as `Z`, covariates such as `X1`, `X2`,
+`X3`, and an outcome column such as `Y` for randomization-based inference.
 
 ## Build The Dual-Penalty Design
 
@@ -64,7 +62,7 @@ defaults are a 90-second time limit and 0.01 relative MIP gap. At N = 500,
 HiGHS may return a validated time-limited incumbent; `netmatch()` warns with
 the actual status and available gap when this occurs.
 
-## Diagnostics And Inference
+## Diagnostics And Randomization-Based Inference
 
 ```{r, eval = FALSE}
 diagnostics <- diagnose_match(m_dual)
@@ -77,6 +75,9 @@ ri_design <- RI_design(m_dual, "Y")
 
 rbind(ri_naive$result, ri_decay$result, ri_design$result)
 ```
+
+`RI_decay()` supports sensitivity analysis across network-dependence parameters,
+while `RI_design()` provides the design-based analysis.
 
 ## Sensitivity Analysis
 

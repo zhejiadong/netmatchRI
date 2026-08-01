@@ -26,8 +26,8 @@ test statistic, variance, z-score, and p-value.
 }
 }
 \description{
-Evaluates model-assisted randomization inference over an eta-rho grid using the
-matching cutoff \code{kappa} for covariance truncation.
+Evaluates sensitivity analysis results over an eta-rho grid using the matching
+cutoff \code{kappa} for covariance truncation.
 }
 \examples{
 \dontrun{

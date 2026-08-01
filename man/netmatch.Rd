@@ -18,7 +18,7 @@ netmatch(data, treat, covariates, network,
 \item{data}{A data frame with one row per unit. Users supplying their own
 data should include at least a binary treatment column such as \code{Z},
 covariate columns such as \code{X1}, \code{X2}, \code{X3}, and an outcome
-column such as \code{Y} when randomization inference will be run later.}
+column such as \code{Y} when randomization-based inference will be run later.}
 \item{treat}{Name of the binary treatment column coded 0/1.}
 \item{covariates}{Character vector of covariate column names.}
 \item{network}{Square adjacency or network-distance matrix.}

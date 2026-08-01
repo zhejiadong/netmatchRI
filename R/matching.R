@@ -9,7 +9,7 @@
 #' @param data A data frame with one row per unit. Users supplying their own
 #'   data should include at least a binary treatment column such as `Z`,
 #'   covariate columns such as `X1`, `X2`, `X3`, and an outcome column such as
-#'   `Y` when randomization inference will be run later.
+#'   `Y` when randomization-based inference will be run later.
 #' @param treat Name of the binary treatment column coded 0/1.
 #' @param covariates Character vector of covariate column names.
 #' @param network Square adjacency or network-distance matrix.

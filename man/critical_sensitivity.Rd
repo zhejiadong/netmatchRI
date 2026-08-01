@@ -30,7 +30,7 @@ A \code{netmatch_critical_sensitivity} object, which is a list with:
 }
 \description{
 Computes the critical value of eta as a function of rho that solves
-\code{p(eta, rho) = alpha} for the model-assisted decay bound.
+\code{p(eta, rho) = alpha} for the sensitivity analysis.
 }
 \details{
 The curve is intended as the robustness display for the dual-penalty design.

@@ -1,11 +1,15 @@
 # netmatchRI
 
-`netmatchRI` implements network-penalty matching method and randomization
-inference for observational studies when multiple variables exihibt network dependence. Its main design is
-the dual-penalty matching formulation, which excludes units close in the network to be placed in the same matched set (both within and across treatment arms).
-It also provide the matched-based randomization inference methods to adjust for residual network dependence across matched sets. It provides sensitivity anlaysis for evaluating how robusteness the inferential conclusions sensitive to the strength of network dependece and the critical curves for quantifing the minimal network dependence required for rendering the observed significance as a result of spurious association.
-The package also includes covariate-only and single-penalty comparison designs,
-diagnostic summaries of matching design.
+`netmatchRI` implements dual-penalty matching and randomization-based inference
+for observational network data with network dependence and interference. The
+dual-penalty matching method incorporates network proximity across treatment
+arms and among units assigned to the same matched sets. The package provides
+randomization-based inference that accounts for residual network dependence
+across matched sets, sensitivity analysis of inferential conclusions across
+dependence parameters, and critical curves that quantify the minimum network
+dependence required to render observed significance a spurious association.
+It also includes covariate-only and single-penalty comparison designs and
+diagnostic summaries of the matching design.
 
 ## Installation
 
@@ -84,8 +88,8 @@ as `Z`, observed covariates such as `X1`, `X2`, `X3`, an outcome column such as
 - `netmatch()` builds a matched design under the selected matching method.
 - `diagnose_match()` summarizes covariate balance and within-set network
   distances.
-- `RI_naive()`, `RI_decay()`, and `RI_design()` run randomization inference for
-  matched designs.
+- `RI_naive()`, `RI_decay()`, and `RI_design()` run randomization-based inference
+  for matched designs, including sensitivity analysis and design-based approaches.
 - `netmatch_sensitivity()` evaluates p-values over an `(eta, rho)` grid.
 - `critical_sensitivity()` computes the critical sensitivity curve.
 - `plot_sensitivity()` plots sensitivity results.
@@ -94,7 +98,8 @@ as `Z`, observed covariates such as `X1`, `X2`, `X3`, an outcome column such as
 ## Additional documentation
 
 The package vignette `vignettes/netmatchRI.Rmd` gives a longer walkthrough of
-simulation, matching, inference, and sensitivity analysis.
+simulation, dual-penalty matching, randomization-based inference, and
+sensitivity analysis for observational network data.
 
 ## Citation
 

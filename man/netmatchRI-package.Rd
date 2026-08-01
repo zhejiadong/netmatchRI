@@ -2,10 +2,11 @@
 \name{netmatchRI-package}
 \alias{netmatchRI}
 \alias{netmatchRI-package}
-\title{netmatchRI: Network Matching and Randomization Inference}
+\title{netmatchRI: Dual-Penalty Matching and Randomization-Based Inference}
 \description{
-\pkg{netmatchRI} provides a compact workflow for matched designs and
-randomization inference when observations may be related through a network.
+\pkg{netmatchRI} implements dual-penalty matching and randomization-based
+inference for observational network data with network dependence and
+interference.
 }
 \details{
 The main workflow is:
@@ -15,9 +16,10 @@ data frame, binary treatment, covariates, and an adjacency or distance matrix.
 \item \code{\link{diagnose_match}()} summarizes covariate balance and
 within-set network distance in a matched design.
 \item \code{\link{RI_naive}()}, \code{\link{RI_decay}()}, and
-\code{\link{RI_design}()} run randomization inference for a matched design.
+\code{\link{RI_design}()} run randomization-based inference for a matched
+design, including sensitivity analysis and design-based approaches.
 \item \code{\link{netmatch_sensitivity}()} evaluates the
-randomization-inference result over a grid of residual network-dependence
+randomization-based inference result over a grid of residual network-dependence
 parameters.
 \item \code{\link{critical_sensitivity}()} computes the critical eta curve
 for the dual-penalty design.
