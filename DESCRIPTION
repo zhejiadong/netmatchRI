@@ -1,6 +1,6 @@
 Package: netmatchRI
 Title: Network-Constrained Matching and Randomization Inference
-Version: 0.0.1
+Version: 0.1.0
 Authors@R: c(
     person("Zhejia", "Dong", role = c("aut", "cre"),
            email = "zhejia_dong@brown.edu"),
