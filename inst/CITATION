@@ -1,0 +1,12 @@
+citHeader("To cite netmatchRI in publications, please cite the associated manuscript:")
+
+bibentry(
+  bibtype = "Unpublished",
+  title = "Design and Analysis for Valid Causal Inference with Network-Dependent Data",
+  author = c(
+    person("Zhejia", "Dong"),
+    person("Youjin", "Lee")
+  ),
+  year = "2026",
+  note = "Manuscript in preparation"
+)

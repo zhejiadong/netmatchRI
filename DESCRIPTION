@@ -1,12 +1,9 @@
 Package: netmatchRI
 Title: Network-Constrained Matching and Randomization Inference
 Version: 0.1.0
-Authors@R: c(
-    person("Zhejia", "Dong", role = c("aut", "cre"),
-           email = "zhejia_dong@brown.edu"),
-    person("Youjin", "Lee", role = "aut")
-  )
-Author: Zhejia Dong [aut, cre], Youjin Lee [aut]
+Authors@R: person("Zhejia", "Dong", role = c("aut", "cre"),
+    email = "zhejia_dong@brown.edu")
+Author: Zhejia Dong [aut, cre]
 Maintainer: Zhejia Dong <zhejia_dong@brown.edu>
 Description: Tools for matching observational data with network dependence
     and testing sharp null hypotheses by randomization inference. The package
