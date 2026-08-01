@@ -15,18 +15,17 @@
 #' @param network Square adjacency or network-distance matrix.
 #' @param method Matching method: `"dual"`, `"single"`, or `"covariate"`.
 #' @param kappa Network-distance threshold for disallowed close pairs.
-#' @param solver Solver preference for `method = "dual"`. `"auto"` tries
-#'   Gurobi first, then the open-source GLPK backend through `Rglpk`.
-#'   `"gurobi"` uses Gurobi only. `"glpk"` uses `Rglpk` with a sparse triplet
-#'   constraint matrix. The `"covariate"` and `"single"` methods use
-#'   `optmatch::fullmatch()`.
+#' @param solver Solver preference for `method = "dual"`. `"highs"` is the
+#'   default open-source backend. `"auto"` tries Gurobi, HiGHS, then GLPK.
+#'   `"gurobi"`, `"highs"`, and `"glpk"` request one backend explicitly. The
+#'   `"covariate"` and `"single"` methods use `optmatch::fullmatch()`.
 #' @param min_controls Minimum controls per treated unit in each matched set.
 #' @param max_controls Maximum controls per treated unit in each matched set.
 #' @param caliper Mahalanobis-distance caliper for feasible treated-control
 #'   edges.
 #' @param timelimit Solver time limit in seconds.
-#' @param mipgap Gurobi MIP gap.
-#' @param threads Number of Gurobi threads.
+#' @param mipgap Relative MIP gap for Gurobi and HiGHS.
+#' @param threads Number of Gurobi or HiGHS threads.
 #' @return A `netmatch` object, which is a list with matched `data`, treatment
 #'   and covariate names, `method`, `kappa`, `solver` used for solving the
 #'   matching problem, the unit-level network distance matrix in
@@ -41,7 +40,7 @@
 #'   network = sim$net_dist,
 #'   method = "dual",
 #'   kappa = 2,
-#'   solver = "auto"
+#'   solver = "highs"
 #' )
 #' m
 #' summary(m)
@@ -53,11 +52,11 @@ netmatch <- function(data,
                      network,
                      method = c("dual", "single", "covariate"),
                      kappa = 2,
-                     solver = c("auto", "gurobi", "glpk"),
+                     solver = c("highs", "auto", "gurobi", "glpk"),
                      min_controls = 0.01,
                      max_controls = 100,
                      caliper = 8,
-                     timelimit = 50,
+                     timelimit = 90,
                      mipgap = 0.01,
                      threads = 1) {
   method <- match.arg(method)
@@ -92,7 +91,7 @@ netmatch <- function(data,
     )
     solver_used <- "optmatch"
   } else {
-    solver_used <- .resolve_solver(solver)
+    solver_candidates <- .resolve_solver_candidates(solver)
     matched <- .solve_network_match(
       data = data,
       z = z,
@@ -100,7 +99,7 @@ netmatch <- function(data,
       unit_dist = unit_dist,
       method = method,
       kappa = kappa,
-      solver = solver_used,
+      solver = solver_candidates,
       min_controls = min_controls,
       max_controls = max_controls,
       caliper = caliper,
@@ -108,6 +107,7 @@ netmatch <- function(data,
       mipgap = mipgap,
       threads = threads
     )
+    solver_used <- matched$solver
   }
 
   out <- list(
@@ -125,18 +125,30 @@ netmatch <- function(data,
 }
 
 .resolve_solver <- function(solver) {
+  .resolve_solver_candidates(solver)[1L]
+}
+
+.resolve_solver_candidates <- function(solver) {
   if (solver == "gurobi") {
     if (.gurobi_available()) return("gurobi")
     stop("Gurobi is not available or its license test failed.", call. = FALSE)
+  }
+  if (solver == "highs") {
+    if (.highs_available()) return("highs")
+    stop("Package `highs` is required for `solver = \"highs\"`.", call. = FALSE)
   }
   if (solver == "glpk") {
     if (.glpk_available()) return("glpk")
     stop("Rglpk and slam are required for `solver = \"glpk\"`.", call. = FALSE)
   }
   if (solver == "auto") {
-    if (.gurobi_available()) return("gurobi")
-    if (.glpk_available()) return("glpk")
-    stop("Dual matching requires Gurobi or Rglpk.", call. = FALSE)
+    candidates <- c(
+      if (.gurobi_available()) "gurobi",
+      if (.highs_available()) "highs",
+      if (.glpk_available()) "glpk"
+    )
+    if (length(candidates)) return(candidates)
+    stop("Dual matching requires Gurobi, HiGHS, or Rglpk.", call. = FALSE)
   }
   stop("Unknown solver.", call. = FALSE)
 }
@@ -160,6 +172,10 @@ netmatch <- function(data,
 .glpk_available <- function() {
   requireNamespace("Rglpk", quietly = TRUE) &&
     requireNamespace("slam", quietly = TRUE)
+}
+
+.highs_available <- function() {
+  requireNamespace("highs", quietly = TRUE)
 }
 
 .optmatch_match <- function(data,
@@ -214,8 +230,7 @@ netmatch <- function(data,
                                  timelimit,
                                  mipgap,
                                  threads) {
-  last_error <- NULL
-  res <- tryCatch(
+  solve_once <- function(candidate) {
     .gurobi_match_once(
       data = data,
       z = z,
@@ -223,25 +238,39 @@ netmatch <- function(data,
       unit_dist = unit_dist,
       method = method,
       kappa = kappa,
-      solver = solver,
+      solver = candidate,
       min_controls = min_controls,
       max_controls = max_controls,
       caliper = caliper,
       timelimit = timelimit,
       mipgap = mipgap,
       threads = threads
-    ),
-    error = function(e) {
-      last_error <<- conditionMessage(e)
-      NULL
-    }
-  )
-  if (!is.null(res)) return(res)
-  if (identical(solver, "glpk") &&
-      grepl("GLPK|usable matched design within the current search limit", last_error, fixed = FALSE)) {
-    stop(last_error, call. = FALSE)
+    )
   }
-  stop("No feasible matched design was found. Last solver message: ", last_error, call. = FALSE)
+
+  if (length(solver) == 1L) {
+    matched <- solve_once(solver)
+    matched$solver <- solver
+    return(matched)
+  }
+
+  errors <- character(0)
+  for (candidate in solver) {
+    matched <- tryCatch(
+      solve_once(candidate),
+      error = function(e) {
+        errors[[candidate]] <<- conditionMessage(e)
+        NULL
+      }
+    )
+    if (!is.null(matched)) {
+      matched$solver <- candidate
+      return(matched)
+    }
+  }
+  details <- paste(paste0(names(errors), ": ", unname(errors)), collapse = "; ")
+  stop("No solver in the `auto` chain returned a usable matched design. ", details,
+       call. = FALSE)
 }
 
 .gurobi_match_once <- function(data,
@@ -328,6 +357,13 @@ netmatch <- function(data,
   )
   if (solver == "glpk") {
     res <- .solve_roi_glpk(model, timelimit = timelimit)
+  } else if (solver == "highs") {
+    res <- .solve_highs(
+      model,
+      timelimit = timelimit,
+      mipgap = mipgap,
+      threads = threads
+    )
   } else {
     params <- list(
       TimeLimit = timelimit,
@@ -337,7 +373,7 @@ netmatch <- function(data,
     )
     res <- gurobi::gurobi(model, params = params)
   }
-  if (solver == "glpk" && res$status %in% c("INFEASIBLE", "INF_OR_UNBD")) {
+  if (solver == "glpk" && res$status %in% c("INFEASIBLE", "INF_OR_UNBD", "UNBOUNDED")) {
     stop(
       "GLPK could not produce a matched design within the current search limit. ",
       "Increase `timelimit` or try `solver = \"gurobi\"`. ",
@@ -345,8 +381,8 @@ netmatch <- function(data,
       call. = FALSE
     )
   }
-  if (res$status %in% c("INFEASIBLE", "INF_OR_UNBD")) {
-    stop("MIP model is infeasible.", call. = FALSE)
+  if (res$status %in% c("INFEASIBLE", "INF_OR_UNBD", "UNBOUNDED")) {
+    stop("MIP model is infeasible or unbounded.", call. = FALSE)
   }
   if (solver == "glpk" && (!res$status %in% c("OPTIMAL", "TIME_LIMIT") || is.null(res$x))) {
     stop(
@@ -359,6 +395,10 @@ netmatch <- function(data,
   if (!res$status %in% c("OPTIMAL", "TIME_LIMIT") || is.null(res$x)) {
     stop("MIP solver returned status `", res$status, "` without a usable solution.", call. = FALSE)
   }
+
+  reported_objective <- if (identical(solver, "gurobi")) res$objval else NULL
+  checked <- .validate_mip_solution(model, res$x, reported_objective = reported_objective)
+  res$x <- checked$x
 
   subclass <- .extract_subclasses(res, treat_ids, ctrl_ids, E, nrow(data))
   keep_units <- !is.na(subclass)
@@ -390,6 +430,151 @@ netmatch <- function(data,
   x <- as.numeric(sol$solution)
   if (identical(status, "5") || identical(status, "0")) status <- "OPTIMAL"
   list(status = status, x = x, raw = sol)
+}
+
+.highs_row_bounds <- function(sense, rhs) {
+  if (length(sense) != length(rhs)) {
+    stop("Model `sense` and `rhs` must have the same length.", call. = FALSE)
+  }
+  known <- sense %in% c(">=", "<=", "=")
+  if (any(!known)) {
+    stop(
+      "Unknown model sense: ", paste(unique(sense[!known]), collapse = ", "),
+      call. = FALSE
+    )
+  }
+  lhs <- rep(-Inf, length(rhs))
+  upper_rhs <- rep(Inf, length(rhs))
+  lhs[sense == ">="] <- rhs[sense == ">="]
+  upper_rhs[sense == "<="] <- rhs[sense == "<="]
+  lhs[sense == "="] <- rhs[sense == "="]
+  upper_rhs[sense == "="] <- rhs[sense == "="]
+  list(lhs = lhs, rhs = upper_rhs)
+}
+
+.validate_mip_solution <- function(model,
+                                   x,
+                                   reported_objective = NULL,
+                                   tolerance = 1e-6) {
+  p <- length(model$obj)
+  if (length(x) != p) {
+    stop("Solver solution has the wrong length.", call. = FALSE)
+  }
+  if (!all(is.finite(x))) {
+    stop("Solver solution contains non-finite values.", call. = FALSE)
+  }
+  if (any(x < -tolerance | x > 1 + tolerance)) {
+    stop("Solver solution violates binary variable bounds.", call. = FALSE)
+  }
+  if (any(abs(x - round(x)) > tolerance)) {
+    stop("Solver solution violates integrality.", call. = FALSE)
+  }
+  x <- as.numeric(round(x))
+  if (length(model$sense) != length(model$rhs) || nrow(model$A) != length(model$rhs)) {
+    stop("Model constraint dimensions are inconsistent.", call. = FALSE)
+  }
+  known <- model$sense %in% c(">=", "<=", "=")
+  if (any(!known)) {
+    stop(
+      "Unknown model sense: ", paste(unique(model$sense[!known]), collapse = ", "),
+      call. = FALSE
+    )
+  }
+  activity <- as.numeric(model$A %*% x)
+  violated <- (model$sense == ">=" & activity < model$rhs - tolerance) |
+    (model$sense == "<=" & activity > model$rhs + tolerance) |
+    (model$sense == "=" & abs(activity - model$rhs) > tolerance)
+  if (any(violated)) {
+    stop("Solver solution violates model constraints.", call. = FALSE)
+  }
+  objective <- sum(model$obj * x)
+  if (!is.null(reported_objective)) {
+    if (length(reported_objective) != 1L || !is.finite(reported_objective) ||
+        abs(objective - reported_objective) > tolerance * max(1, abs(objective))) {
+      stop("Solver objective does not match the recomputed objective.", call. = FALSE)
+    }
+  }
+  list(x = as.numeric(round(x)), objective = objective, activity = activity)
+}
+
+.normalize_highs_result <- function(sol, model, run_time) {
+  status_code <- as.integer(sol$status)[1L]
+  status_message <- as.character(sol$status_message)[1L]
+  info <- sol$info
+  gap <- if (!is.null(info$mip_gap)) as.numeric(info$mip_gap)[1L] else NA_real_
+  metadata <- list(
+    status_code = status_code,
+    status_message = status_message,
+    gap = gap,
+    run_time = as.numeric(run_time)[1L],
+    time_limited_incumbent = FALSE
+  )
+  if (identical(status_code, 8L)) {
+    return(list(status = "INFEASIBLE", x = NULL, raw = sol, metadata = metadata))
+  }
+  if (identical(status_code, 9L)) {
+    return(list(status = "INF_OR_UNBD", x = NULL, raw = sol, metadata = metadata))
+  }
+  if (identical(status_code, 10L)) {
+    return(list(status = "UNBOUNDED", x = NULL, raw = sol, metadata = metadata))
+  }
+  if (is.na(status_code) || !status_code %in% c(7L, 13L)) {
+    return(list(status = "UNKNOWN", x = NULL, raw = sol, metadata = metadata))
+  }
+  if (!identical(info$primal_solution_status, "Feasible")) {
+    status <- if (identical(status_code, 13L)) {
+      "TIME_LIMIT_NO_INCUMBENT"
+    } else {
+      "OPTIMAL_NO_SOLUTION"
+    }
+    return(list(status = status, x = NULL, raw = sol, metadata = metadata))
+  }
+  checked <- .validate_mip_solution(
+    model,
+    sol$primal_solution,
+    reported_objective = sol$objective_value
+  )
+  if (identical(status_code, 13L)) {
+    metadata$time_limited_incumbent <- TRUE
+    warning(
+      "HiGHS reached its time limit with a validated feasible incumbent; status: ",
+      status_message, "; actual relative MIP gap: ",
+      if (is.finite(gap)) format(gap, digits = 6) else "unavailable", ".",
+      call. = FALSE
+    )
+  }
+  list(
+    status = if (identical(status_code, 7L)) "OPTIMAL" else "TIME_LIMIT",
+    x = checked$x,
+    objective = checked$objective,
+    raw = sol,
+    metadata = metadata
+  )
+}
+
+.solve_highs <- function(model, timelimit, mipgap, threads) {
+  bounds <- .highs_row_bounds(model$sense, model$rhs)
+  p <- length(model$obj)
+  started <- proc.time()[["elapsed"]]
+  sol <- highs::highs_solve(
+    L = model$obj,
+    lower = rep.int(0, p),
+    upper = rep.int(1, p),
+    A = model$A,
+    lhs = bounds$lhs,
+    rhs = bounds$rhs,
+    types = rep.int("I", p),
+    maximum = FALSE,
+    control = list(
+      output_flag = FALSE,
+      presolve = "on",
+      time_limit = as.numeric(timelimit),
+      mip_rel_gap = as.numeric(mipgap),
+      threads = as.integer(max(1, threads))
+    )
+  )
+  run_time <- proc.time()[["elapsed"]] - started
+  .normalize_highs_result(sol, model, run_time = run_time)
 }
 
 .close_pairs <- function(keep_slice, dist_mat, kappa) {
@@ -510,11 +695,12 @@ netmatch <- function(data,
   for (i in seq_len(nrow(sel))) {
     union(sel$t[i], length(treat_ids) + sel$c[i])
   }
-  local_membership <- vapply(seq_along(parent), find, integer(1))
+  selected_local <- sort(unique(c(sel$t, length(treat_ids) + sel$c)))
+  local_membership <- vapply(selected_local, find, integer(1))
   remap <- match(local_membership, unique(local_membership))
+  global_ids <- c(treat_ids, ctrl_ids)[selected_local]
   subclass <- rep(NA_integer_, n)
-  subclass[treat_ids] <- remap[seq_along(treat_ids)]
-  subclass[ctrl_ids] <- remap[length(treat_ids) + seq_along(ctrl_ids)]
+  subclass[global_ids] <- remap
   subclass
 }
 

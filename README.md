@@ -21,16 +21,22 @@ The package installs its required R dependencies automatically.
 
 ## Solver recommendation
 
-We recommend using Gurobi whenever it is available, especially for larger or
-more demanding matching problems. In `netmatchRI`, the simplest way to do that
-is to set `solver = "auto"`: the package will use Gurobi when it is installed
-and licensed, and otherwise fall back to the open-source GLPK backend.
+The default `solver = "highs"` uses the open-source HiGHS backend. We selected
+HiGHS as the preferred open-source default based on package-local benchmarks
+for the current dual-penalty formulation at N = 300--500; this is not a claim
+that HiGHS is universally the fastest solver. HiGHS is a required dependency
+and is installed automatically with `netmatchRI`.
 
-If you want to use Gurobi explicitly, first install the Gurobi Optimizer and
-activate a valid Gurobi license on your machine, then install the `{gurobi}` R
-package following the official Gurobi instructions for your platform. After
-that, you can call `netmatch(..., solver = "gurobi")`. If Gurobi is not
-available, `solver = "auto"` remains the recommended default for portability.
+For explicit licensed-solver preference, `solver = "auto"` tries Gurobi first,
+then HiGHS, then the open-source GLPK fallback. You can request any backend with
+`solver = "gurobi"`, `solver = "highs"`, or `solver = "glpk"`. Gurobi requires
+its optimizer, license, and R package; GLPK uses `{Rglpk}` and `{slam}`.
+
+The defaults are `timelimit = 90` seconds and `mipgap = 0.01`. In package-local
+N = 500 runs, HiGHS may stop at the time limit with a feasible incumbent rather
+than a proven optimum. `netmatch()` accepts such a result only after independent
+bounds, integrality, constraint, and objective validation, and warns with the
+actual status and available relative gap.
 
 ## Basic workflow
 
@@ -44,7 +50,7 @@ m_dual <- netmatch(
   network = sim$net_dist,
   method = "dual",
   kappa = 2,
-  solver = "auto"
+  solver = "highs"
 )
 
 diagnostics <- diagnose_match(m_dual)

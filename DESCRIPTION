@@ -14,7 +14,9 @@ Description: Tools for matching observational data with network dependence
     pairs and close same-arm units within matched sets. It also includes
     comparison matching designs, model-assisted variance bounds, sensitivity
     grids, a critical sensitivity curve, and a built-in 300-unit
-    example dataset.
+    example dataset. An optional interface to the commercial 'Gurobi Optimizer'
+    is available when its separately distributed R package and a valid license
+    are installed.
 License: MIT + file LICENSE
 URL: https://github.com/zhejiadong/netmatchRI
 BugReports: https://github.com/zhejiadong/netmatchRI/issues
@@ -26,6 +28,7 @@ Depends:
 Imports:
     ggplot2,
     graphics,
+    highs,
     igraph,
     Matrix,
     mvtnorm,
@@ -38,7 +41,7 @@ Suggests:
     knitr,
     MASS,
     rmarkdown,
-    testthat (>= 3.0.0)
+    testthat (>= 3.2.0)
 Enhances:
     gurobi
 VignetteBuilder: knitr

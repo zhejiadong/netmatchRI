@@ -19,9 +19,13 @@
 #' * `simulate_netmatch_example()` generates one 300-unit example
 #'   dataset for examples and workflow checks.
 #'
-#' The dual-penalty matching backend uses Gurobi when available and can fall
-#' back to open-source GLPK through `Rglpk`. After installation, use
-#' `library(netmatchRI)`,
+#' The dual-penalty matching backend defaults to open-source HiGHS. This choice
+#' is based on package-local benchmarks at N = 300--500 and is not a claim that
+#' HiGHS is universally fastest. `solver = "auto"` tries Gurobi, HiGHS, then
+#' GLPK; either licensed Gurobi or open-source GLPK can also be requested
+#' explicitly. At N = 500, HiGHS may return a validated time-limited incumbent,
+#' in which case `netmatch()` issues a warning with the reported gap. After
+#' installation, use `library(netmatchRI)`,
 #' `ls("package:netmatchRI")`, `help(package = "netmatchRI")`,
 #' `?netmatchRI`, and `?netmatch` to inspect the package.
 #'

@@ -6,8 +6,8 @@
 \usage{
 netmatch(data, treat, covariates, network,
   method = c("dual", "single", "covariate"), kappa = 2,
-  solver = c("auto", "gurobi", "glpk"), min_controls = 0.01,
-  max_controls = 100, caliper = 8, timelimit = 50, mipgap = 0.01,
+  solver = c("highs", "auto", "gurobi", "glpk"), min_controls = 0.01,
+  max_controls = 100, caliper = 8, timelimit = 90, mipgap = 0.01,
   threads = 1)
 
 \method{summary}{netmatch}(object, ...)
@@ -24,18 +24,18 @@ column such as \code{Y} when randomization inference will be run later.}
 \item{network}{Square adjacency or network-distance matrix.}
 \item{method}{Matching method: \code{"dual"}, \code{"single"}, or \code{"covariate"}.}
 \item{kappa}{Network-distance threshold. Pairs with distance less than or equal to \code{kappa} are disallowed where the method applies network restrictions.}
-\item{solver}{Solver preference for \code{method = "dual"}. \code{"auto"} tries
-Gurobi first, then the open-source GLPK backend through Rglpk. \code{"gurobi"}
-uses Gurobi only. \code{"glpk"} uses Rglpk with a sparse triplet constraint
-matrix. \code{"covariate"} and \code{"single"} use
+\item{solver}{Solver preference for \code{method = "dual"}. \code{"highs"} is
+the default open-source backend. \code{"auto"} tries Gurobi, HiGHS, then GLPK.
+\code{"gurobi"}, \code{"highs"}, and \code{"glpk"} request one backend
+explicitly. \code{"covariate"} and \code{"single"} use
 \code{optmatch::fullmatch()}.}
 \item{min_controls}{Minimum controls per treated unit in each matched set.}
 \item{max_controls}{Maximum controls per treated unit in each matched set.}
 \item{caliper}{Mahalanobis-distance caliper for feasible treated-control
 edges.}
 \item{timelimit}{Solver time limit in seconds.}
-\item{mipgap}{Gurobi MIP gap.}
-\item{threads}{Number of Gurobi threads.}
+\item{mipgap}{Relative MIP gap for Gurobi and HiGHS.}
+\item{threads}{Number of Gurobi or HiGHS threads.}
 \item{object}{A \code{netmatch} object.}
 \item{x}{A \code{netmatch} object.}
 \item{...}{Unused.}
@@ -75,7 +75,7 @@ m <- netmatch(
   network = sim$net_dist,
   method = "dual",
   kappa = 2,
-  solver = "auto"
+  solver = "highs"
 )
 m
 summary(m)

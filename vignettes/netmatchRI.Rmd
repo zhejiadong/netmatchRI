@@ -50,15 +50,19 @@ m_dual <- netmatch(
   network = net_dist,
   method = "dual",
   kappa = 2,
-  solver = "auto"
+  solver = "highs"
 )
 
 m_dual
 summary(m_dual)
 ```
 
-If Gurobi is installed, `solver = "gurobi"` will use it directly. Otherwise,
-`solver = "auto"` falls back to the open-source GLPK backend.
+The default `solver = "highs"` is the preferred open-source backend based on
+package-local N = 300--500 benchmarks; this does not imply that HiGHS is
+universally fastest. `solver = "auto"` tries Gurobi, HiGHS, then GLPK. The
+defaults are a 90-second time limit and 0.01 relative MIP gap. At N = 500,
+HiGHS may return a validated time-limited incumbent; `netmatch()` warns with
+the actual status and available gap when this occurs.
 
 ## Diagnostics And Inference
 

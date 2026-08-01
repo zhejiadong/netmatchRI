@@ -26,8 +26,9 @@ test_that("dual penalty keeps full matching constraints", {
     X2 = c(0, 1, 0.2, 1.2, 0.5)
   )
   expect_error(
-    netmatch(dat, "Z", c("X1", "X2"), D, method = "dual", kappa = 2, max_controls = 3),
-    "No feasible matched design"
+    netmatch(dat, "Z", c("X1", "X2"), D, method = "dual", kappa = 2,
+             solver = "gurobi", max_controls = 3),
+    "infeasible or unbounded"
   )
 })
 
@@ -40,7 +41,8 @@ test_that("dual penalty uses Gurobi and covers all units when feasible", {
     X1 = c(0, 10, 0.1, 10.1),
     X2 = c(0, 0, 0, 0)
   )
-  m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "dual", kappa = 2)
+  m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "dual", kappa = 2,
+                solver = "gurobi")
   expect_equal(m$solver, "gurobi")
   expect_false("method_label" %in% names(m))
   expect_false("match_table" %in% names(m))
