@@ -12,8 +12,12 @@ Description: Implements dual-penalty matching and randomization-based inference
     includes comparison matching designs, design-based variance bounds,
     sensitivity analysis, critical sensitivity curves, and a built-in 300-unit
     example dataset. An optional interface to the commercial 'Gurobi Optimizer'
-    is available when its separately distributed R package and a valid license
-    are installed.
+    is available. Eligible academic users can request a free license at
+    <https://www.gurobi.com/academics/>. The optimizer can be downloaded from
+    <https://www.gurobi.com/product/download-center>. The associated 'gurobi'
+    R package is not available from CRAN; it is distributed with the optimizer
+    and can be installed by following the official instructions at
+    <https://docs.gurobi.com/projects/optimizer/en/current/reference/r/setup.html>.
 License: MIT + file LICENSE
 URL: https://github.com/zhejiadong/netmatchRI
 BugReports: https://github.com/zhejiadong/netmatchRI/issues

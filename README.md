@@ -36,6 +36,45 @@ then HiGHS, then the open-source GLPK fallback. You can request any backend with
 `solver = "gurobi"`, `solver = "highs"`, or `solver = "glpk"`. Gurobi requires
 its optimizer, license, and R package; GLPK uses `{Rglpk}` and `{slam}`.
 
+### Optional Gurobi backend
+
+Gurobi is optional. The default `solver = "highs"` does not require Gurobi.
+To use `solver = "gurobi"`:
+
+1. Eligible academic users can request a free academic license at
+   <https://www.gurobi.com/academics/>. Other users can review the available
+   license options at the Gurobi download center.
+2. Download and install Gurobi Optimizer from
+   <https://www.gurobi.com/product/download-center>.
+3. Activate the license using the instructions in the Gurobi User Portal. For
+   an Academic Named-User License, this normally involves running the
+   `grbgetkey` command shown on the license detail page.
+4. Install the `gurobi` R package included in the `<installdir>/R` directory of
+   the Gurobi installation:
+
+   ```r
+   install.packages("<path-to-gurobi-R-package>", repos = NULL)
+   ```
+
+   Platform-specific instructions are available in the
+   [official Gurobi R installation guide](https://docs.gurobi.com/projects/optimizer/en/current/reference/r/setup.html).
+5. Verify the installation and request the Gurobi backend in `netmatchRI`:
+
+   ```r
+   library(gurobi)
+   sim <- simulate_netmatch_example()
+
+   m_dual_gurobi <- netmatch(
+     data = sim$data,
+     treat = "Z",
+     covariates = c("X1", "X2", "X3"),
+     network = sim$net_dist,
+     method = "dual",
+     kappa = 2,
+     solver = "gurobi"
+   )
+   ```
+
 The defaults are `timelimit = 90` seconds and `mipgap = 0.01`. In package-local
 N = 500 runs, HiGHS may stop at the time limit with a feasible incumbent rather
 than a proven optimum. `netmatch()` accepts such a result only after independent
