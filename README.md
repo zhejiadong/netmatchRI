@@ -106,5 +106,5 @@ sensitivity analysis for observational network data.
 If you use this repository or the accompanying methods in your work, please
 cite:
 
-Dong, Z., & Lee, Y. "Design and Analysis for Valid Causal Inference with
-Network-Dependent Data." In process.
+Dong Z, Lee Y (2026). "Design and Analysis for Valid Causal Inference with
+Network-Dependent Data." Manuscript in preparation.

@@ -10,13 +10,15 @@ authors:
   - family-names: "Lee"
     given-names: "Youjin"
 preferred-citation:
-  type: article
+  type: unpublished
   authors:
     - family-names: "Dong"
       given-names: "Zhejia"
     - family-names: "Lee"
       given-names: "Youjin"
   title: "Design and Analysis for Valid Causal Inference with Network-Dependent Data"
-  status: "in process"
+  year: 2026
+  status: "in-preparation"
+  notes: "Manuscript in preparation"
 repository-code: "https://github.com/zhejiadong/netmatchRI"
 license: "MIT"
