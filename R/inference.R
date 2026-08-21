@@ -374,10 +374,8 @@ print.netmatch_critical_sensitivity <- function(x, ...) {
 #'   grid objects use `"pvalue"` and critical objects use `"critical"`.
 #' @param alpha Test level for the reference line.
 #' @param naive Optional naive p-value or randomization-based inference result object.
-#' @param critical_ylim Optional coordinate limits for `type = "critical"`.
+#' @param critical_ylim Optional visible y-axis range for `type = "critical"`.
 #'   Defaults to `c(0, 1)`. Values outside the visible range remain in the data.
-#' @param ... Additional arguments passed to `critical_sensitivity()` when
-#'   `x` is a grid object and `type = "critical"`.
 #' @return A `ggplot` object.
 #' @examples
 #' \dontrun{
@@ -396,8 +394,7 @@ plot_sensitivity <- function(x,
                              type = NULL,
                              alpha = 0.05,
                              naive = NULL,
-                             critical_ylim = NULL,
-                             ...) {
+                             critical_ylim = NULL) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("`ggplot2` is required for sensitivity plots.", call. = FALSE)
   }
@@ -410,7 +407,7 @@ plot_sensitivity <- function(x,
       stored_rho <- if (!is.null(x$options$rho)) x$options$rho else sort(unique(x$grid$rho))
       x <- critical_sensitivity(
         x$match, x$outcome, rho = stored_rho, alpha = alpha, kappa = x$kappa,
-        weight_type = x$weight_type, ...
+        weight_type = x$weight_type
       )
     }
     if (!inherits(x, "netmatch_critical_sensitivity")) {
@@ -460,7 +457,7 @@ plot.netmatch_critical_sensitivity <- function(x, ...) {
 .plot_critical_sensitivity <- function(x, ylim = NULL) {
   curve <- x$curve[is.finite(x$curve$eta_critical), , drop = FALSE]
   if (!nrow(curve)) {
-    stop("No non-negative critical eta boundary is available to plot. Check `x$interpretation`.", call. = FALSE)
+    stop("No critical curve is available because the naive analysis is already not significant.", call. = FALSE)
   }
   if (is.null(ylim)) {
     ylim <- c(0, 1)
@@ -484,12 +481,12 @@ plot.netmatch_critical_sensitivity <- function(x, ...) {
   if (is.finite(numerator) && numerator < 0) {
     return(paste0(
       "The curve (eta, rho) quantifies the minimum residual network dependence ",
-      "needed to render the observed significance a spurious association. ",
+      "needed to make the result no longer statistically significant. ",
       "At alpha = ", alpha, ", the naive bound is already not significant, so ",
       "there is no positive critical eta boundary."
     ))
   }
-  "The curve (eta, rho) quantifies the minimum residual network dependence needed to render the observed significance a spurious association."
+  "The curve (eta, rho) shows how much residual network dependence is needed to make the result no longer statistically significant."
 }
 
 .extract_naive_p <- function(naive) {

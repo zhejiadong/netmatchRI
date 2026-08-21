@@ -55,8 +55,12 @@ test_that("sensitivity plot defaults agree and reuse stored weighting", {
   sens <- netmatch_sensitivity(m, "Y", eta = c(0, 0.2), rho = c(0.1, 0.4), weight_type = "ntc")
   p1 <- plot(sens)
   p2 <- plot_sensitivity(sens)
+  expect_false("..." %in% names(formals(plot_sensitivity)))
   expect_equal(p1$data$p_value, p2$data$p_value)
   expect_true("p_value" %in% names(p2$data))
+
+  critical_plot <- suppressWarnings(plot_sensitivity(sens, type = "critical"))
+  expect_equal(sort(unique(critical_plot$data$rho)), c(0.1, 0.4))
 
   built <- ggplot2::ggplot_build(p2)
   naive_ntc <- RI_Naive(m, "Y", weight_type = "ntc")$result$p_value

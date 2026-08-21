@@ -6,8 +6,8 @@ dual-penalty matching method incorporates network proximity across treatment
 arms and among units assigned to the same matched sets. The package provides
 randomization-based inference that accounts for residual network dependence
 across matched sets, sensitivity analysis of inferential conclusions across
-dependence parameters, and critical curves that quantify the minimum network
-dependence required to render observed significance a spurious association.
+dependence parameters, and critical curves that show how much residual network
+dependence would make a result no longer statistically significant.
 It also includes covariate-only and single-penalty comparison designs and
 diagnostic summaries of the matching design.
 

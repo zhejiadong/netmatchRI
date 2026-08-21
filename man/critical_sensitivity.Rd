@@ -14,7 +14,7 @@ critical_sensitivity(match, outcome, rho = seq(0, 1, by = 0.01),
 \item{weight_type}{Matched-set weighting. \code{"ns"} uses \eqn{1/(n_s+1)}. \code{"ntc"} uses \eqn{1/(n_{ts}n_{cs})}.}
 }
 \value{
-A \code{netmatch_critical_sensitivity} object. Its \code{curve} contains \code{rho}, the unmodified \code{eta_critical}, and \code{eta_in_range}, which says whether the critical eta is in the sensitivity range from 0 to 1. The object also stores alpha, cutoff, statistic, null expectation, diagonal variance, naive result, interpretation, original match, and all analysis-defining options.
+A \code{netmatch_critical_sensitivity} object. The \code{curve} shows the critical eta for each rho and whether that eta is between 0 and 1. The object also retains the analysis settings and supporting results.
 }
 \description{
 Computes the critical eta at each rho where the two-sided normal-approximation p-value equals \code{alpha}.
