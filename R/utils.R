@@ -1,33 +1,110 @@
 .check_binary <- function(x, name = "treat") {
-  if (!all(stats::na.omit(x) %in% c(0, 1))) {
+  if (anyNA(x)) {
+    stop(sprintf("`%s` must not contain missing values.", name), call. = FALSE)
+  }
+  if (!is.numeric(x) && !is.integer(x) && !is.logical(x)) {
+    stop(sprintf("`%s` must be coded 0/1.", name), call. = FALSE)
+  }
+  if (!all(x %in% c(0, 1))) {
     stop(sprintf("`%s` must be coded 0/1.", name), call. = FALSE)
   }
   invisible(TRUE)
 }
 
-.as_network_distance <- function(network) {
-  if (is.null(network)) stop("`network` is required.", call. = FALSE)
-  network <- as.matrix(network)
-  if (nrow(network) != ncol(network)) {
-    stop("`network` must be a square adjacency or distance matrix.", call. = FALSE)
+.validate_covariates <- function(data, covariates) {
+  missing_cov <- setdiff(covariates, names(data))
+  if (length(missing_cov)) {
+    stop("Missing covariates: ", paste(missing_cov, collapse = ", "), call. = FALSE)
   }
-  diag(network) <- 0
+  has_missing <- vapply(data[covariates], anyNA, logical(1))
+  if (any(has_missing)) {
+    stop(
+      "Matching covariates must not contain missing values: ",
+      paste(covariates[has_missing], collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+  invisible(TRUE)
+}
 
-  finite_vals <- network[is.finite(network) & upper.tri(network)]
-  finite_vals <- finite_vals[finite_vals > 0]
-  is_adjacency <- length(finite_vals) > 0 &&
-    all(finite_vals %in% c(1)) &&
-    all(network %in% c(0, 1), na.rm = TRUE)
+.validate_network <- function(network,
+                              network_type = c("auto", "adjacency", "distance"),
+                              data_rownames = NULL) {
+  network_type <- match.arg(network_type)
+  if (is.null(network)) stop("`network` is required.", call. = FALSE)
+  if (!is.matrix(network) || !is.numeric(network)) {
+    stop("`network` must be a numeric matrix.", call. = FALSE)
+  }
+  if (nrow(network) != ncol(network)) {
+    stop("`network` must be square.", call. = FALSE)
+  }
+  if (anyNA(network) || any(is.nan(network))) {
+    stop("`network` must not contain missing or NaN values.", call. = FALSE)
+  }
 
-  if (!is_adjacency) {
+  rn <- rownames(network)
+  cn <- colnames(network)
+  if (!is.null(rn) || !is.null(cn)) {
+    if (is.null(rn) || is.null(cn)) {
+      stop("A named `network` must have both row and column names.", call. = FALSE)
+    }
+    if (anyDuplicated(rn) || anyDuplicated(cn) || !setequal(rn, cn)) {
+      stop("`network` row and column names must identify the same unique units.", call. = FALSE)
+    }
+    if (!is.null(data_rownames)) {
+      if (anyDuplicated(data_rownames) || !setequal(rn, data_rownames)) {
+        stop("`network` dimnames must match `data` row names.", call. = FALSE)
+      }
+      network <- network[data_rownames, data_rownames, drop = FALSE]
+    }
+  }
+
+  if (!isTRUE(all.equal(network, t(network), tolerance = sqrt(.Machine$double.eps),
+                        check.attributes = FALSE))) {
+    stop("`network` must be symmetric.", call. = FALSE)
+  }
+  if (any(!is.finite(diag(network))) || any(diag(network) != 0)) {
+    stop("`network` must have a zero diagonal.", call. = FALSE)
+  }
+  if (any(network < 0, na.rm = TRUE)) {
+    stop("`network` entries must be nonnegative.", call. = FALSE)
+  }
+
+  resolved_type <- network_type
+  if (network_type == "auto") {
+    resolved_type <- if (all(is.finite(network)) && all(network %in% c(0, 1))) {
+      "adjacency"
+    } else {
+      "distance"
+    }
+  }
+  if (resolved_type == "adjacency") {
+    if (any(!is.finite(network))) {
+      stop("`network` cannot contain Inf when `network_type = \"adjacency\"`.", call. = FALSE)
+    }
+    if (!all(network %in% c(0, 1))) {
+      stop("An adjacency `network` must contain only 0 and 1.", call. = FALSE)
+    }
+  }
+  list(network = network, network_type = resolved_type)
+}
+
+.as_network_distance <- function(network,
+                                 network_type = c("auto", "adjacency", "distance"),
+                                 data_rownames = NULL) {
+  checked <- .validate_network(network, network_type, data_rownames)
+  network <- checked$network
+  if (checked$network_type == "distance") {
+    attr(network, "network_type") <- checked$network_type
     return(network)
   }
   if (!requireNamespace("igraph", quietly = TRUE)) {
     stop("Package `igraph` is required to convert adjacency matrices to network distances.", call. = FALSE)
   }
-
   g <- igraph::graph_from_adjacency_matrix(network, mode = "undirected", diag = FALSE)
-  igraph::distances(g)
+  out <- igraph::distances(g)
+  attr(out, "network_type") <- checked$network_type
+  out
 }
 
 .safe_inverse <- function(S) {
@@ -46,14 +123,15 @@
   .safe_inverse(S)
 }
 
+.covariate_matrix <- function(data, covariates) {
+  X <- stats::model.matrix(stats::reformulate(covariates), data = data)
+  X[, colnames(X) != "(Intercept)", drop = FALSE]
+}
+
 .mahalanobis_matrix <- function(data, treat, covariates, cov_type = c("pooled", "overall")) {
   cov_type <- match.arg(cov_type)
-  X <- stats::model.matrix(
-    stats::reformulate(covariates),
-    data = data
-  )
-  X <- X[, colnames(X) != "(Intercept)", drop = FALSE]
-  keep <- apply(X, 2, stats::sd, na.rm = TRUE) > 0
+  X <- .covariate_matrix(data, covariates)
+  keep <- apply(X, 2, stats::sd) > 0
   if (!any(keep)) {
     stop("At least one matching covariate must have nonzero variance.", call. = FALSE)
   }

@@ -8,7 +8,8 @@
 #' matched-set distance is greater than `kappa`.
 #'
 #' @param match A `netmatch` object.
-#' @param outcome Name of the outcome column.
+#' @param outcome Name of a numeric outcome column with finite, non-missing
+#'   values for all matched units.
 #' @param method Internal variance method: `"sensitivity"`, `"naive"`, or
 #'   `"design"`.
 #' @param eta A number from 0 to 1 that scales residual covariance between
@@ -168,7 +169,8 @@ print.netmatch_test <- function(x, ...) {
 #' is `eta * rho^(d - 1)`.
 #'
 #' @param match A `netmatch` object.
-#' @param outcome Name of the outcome column.
+#' @param outcome Name of a numeric outcome column with finite, non-missing
+#'   values for all matched units.
 #' @param eta Finite numeric values from 0 to 1.
 #' @param rho Finite numeric values from 0 to 1.
 #' @param kappa Analysis cutoff. Defaults to the matching cutoff stored in
@@ -258,7 +260,8 @@ print.netmatch_sensitivity <- function(x, ...) {
 #' `p(eta, rho) = alpha` for the two-sided normal-approximation analysis.
 #'
 #' @param match A `netmatch` object, ideally from `method = "dual"`.
-#' @param outcome Name of the outcome column.
+#' @param outcome Name of a numeric outcome column with finite, non-missing
+#'   values for all matched units.
 #' @param rho Finite numeric values from 0 to 1. For matched sets at distance
 #'   `d`, residual covariance is multiplied by `eta * rho^(d - 1)`.
 #' @param alpha Test level.

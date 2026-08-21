@@ -26,10 +26,23 @@
 #' @param timelimit Solver time limit in seconds.
 #' @param mipgap Relative MIP gap for Gurobi and HiGHS.
 #' @param threads Number of Gurobi or HiGHS threads.
-#' @return A `netmatch` object, which is a list with matched `data`, treatment
-#'   and covariate names, `method`, `kappa`, `solver` used for solving the
-#'   matching problem, the unit-level network distance matrix in
-#'   `network_distance`, and the raw `solver_result`.
+#' @param estimand Target estimand used to construct unit matching weights:
+#'   `"ATT"`, `"ATC"`, or `"ATE"`. Nonzero weights are normalized within
+#'   each treatment group to have mean 1.
+#' @param network_type Interpretation of `network`: `"adjacency"`,
+#'   `"distance"`, or `"auto"`. An explicit choice overrides automatic
+#'   detection. Infinite values are allowed only for distance matrices.
+#' @param include_solver If `TRUE`, retain the backend's raw result in
+#'   `solver_result`. The default keeps only stable `solver_info`.
+#' @return A `netmatch` object containing matched `data`, full-length
+#'   `subclass`, `weights`, and `matched` vectors, the original call and data,
+#'   the estimand and resolved network type, the unit-level network-distance
+#'   matrix, and stable solver information. Raw solver output is included only
+#'   when `include_solver = TRUE`.
+#' @details `solver`, `caliper`, `timelimit`, `mipgap`, and `threads` are used
+#'   only by `method = "dual"`; comparison methods use
+#'   `optmatch::fullmatch()`. `kappa` is ignored by `method = "covariate"`.
+#'   `method = "single"` uses `kappa` but not the mixed-integer solver controls.
 #' @examples
 #' \dontrun{
 #' sim <- simulate_netmatch_example()
@@ -58,20 +71,28 @@ netmatch <- function(data,
                      caliper = 8,
                      timelimit = 90,
                      mipgap = 0.01,
-                     threads = 1) {
+                     threads = 1,
+                     estimand = c("ATT", "ATC", "ATE"),
+                     network_type = c("auto", "adjacency", "distance"),
+                     include_solver = FALSE) {
+  matched_call <- match.call()
   method <- match.arg(method)
   solver <- match.arg(solver)
+  estimand <- match.arg(estimand)
+  network_type <- match.arg(network_type)
   if (!is.data.frame(data)) stop("`data` must be a data frame.", call. = FALSE)
   if (!treat %in% names(data)) stop("`treat` column not found.", call. = FALSE)
-  missing_cov <- setdiff(covariates, names(data))
-  if (length(missing_cov)) {
-    stop("Missing covariates: ", paste(missing_cov, collapse = ", "), call. = FALSE)
-  }
+  .validate_covariates(data, covariates)
   z <- data[[treat]]
   .check_binary(z, treat)
-  unit_dist <- .as_network_distance(network)
+  unit_dist <- .as_network_distance(network, network_type, rownames(data))
+  resolved_network_type <- attr(unit_dist, "network_type")
+  attr(unit_dist, "network_type") <- NULL
   if (nrow(unit_dist) != nrow(data)) {
     stop("`network` size must match `nrow(data)`.", call. = FALSE)
+  }
+  if (!is.logical(include_solver) || length(include_solver) != 1L || is.na(include_solver)) {
+    stop("`include_solver` must be TRUE or FALSE.", call. = FALSE)
   }
   if (!is.numeric(kappa) || length(kappa) != 1 || !is.finite(kappa) || kappa < 0) {
     stop("`kappa` must be one non-negative graph-distance threshold.", call. = FALSE)
@@ -110,17 +131,116 @@ netmatch <- function(data,
     solver_used <- matched$solver
   }
 
+  subclass <- rep(NA_integer_, nrow(data))
+  matched_ids <- as.integer(rownames(matched$data))
+  subclass[matched_ids] <- as.integer(matched$data$subclass)
+  subclass <- factor(subclass, levels = sort(unique(subclass[!is.na(subclass)])))
+  matched_units <- !is.na(subclass)
+  weights <- .matching_weights(z, subclass, estimand)
+  solver_info <- .solver_info(solver_used, matched$solver_result)
+
+  matched_data_frame <- data[matched_units, , drop = FALSE]
+  matched_data_frame$subclass <- droplevels(subclass[matched_units])
+  rownames(matched_data_frame) <- which(matched_units)
+
   out <- list(
-    data = matched$data,
+    data = matched_data_frame,
     treat = treat,
     covariates = covariates,
     method = method,
     kappa = kappa,
     solver = solver_used,
     network_distance = unit_dist,
-    solver_result = matched$solver_result
+    subclass = subclass,
+    weights = weights,
+    matched = matched_units,
+    call = matched_call,
+    estimand = estimand,
+    network_type = resolved_network_type,
+    original_data = data,
+    solver_info = solver_info
   )
+  if (include_solver) out$solver_result <- matched$solver_result
   class(out) <- "netmatch"
+  out
+}
+
+.matching_weights <- function(z, subclass, estimand) {
+  weights <- numeric(length(z))
+  matched <- !is.na(subclass)
+  sets <- split(which(matched), subclass[matched], drop = TRUE)
+  for (ids in sets) {
+    nt <- sum(z[ids] == 1)
+    nc <- sum(z[ids] == 0)
+    if (nt == 0 || nc == 0) next
+    if (estimand == "ATT") {
+      weights[ids[z[ids] == 1]] <- 1
+      weights[ids[z[ids] == 0]] <- nt / nc
+    } else if (estimand == "ATC") {
+      weights[ids[z[ids] == 1]] <- nc / nt
+      weights[ids[z[ids] == 0]] <- 1
+    } else {
+      weights[ids[z[ids] == 1]] <- (nt + nc) / nt
+      weights[ids[z[ids] == 0]] <- (nt + nc) / nc
+    }
+  }
+  for (group in c(0, 1)) {
+    ids <- which(matched & z == group & weights > 0)
+    if (length(ids)) weights[ids] <- weights[ids] / mean(weights[ids])
+  }
+  weights
+}
+
+.scalar_or_na <- function(x, character = FALSE) {
+  if (is.null(x) || !length(x)) return(if (character) NA_character_ else NA_real_)
+  if (character) as.character(x[[1L]]) else as.numeric(x[[1L]])
+}
+
+.solver_info <- function(backend, result) {
+  if (!is.list(result)) {
+    return(list(
+      backend = backend,
+      status = if (identical(backend, "optmatch")) "completed" else NA_character_,
+      objective = NA_real_, gap = NA_real_, runtime = NA_real_
+    ))
+  }
+  status <- if (identical(backend, "optmatch")) "completed" else .scalar_or_na(result$status, TRUE)
+  objective <- .scalar_or_na(if (!is.null(result$objective)) result$objective else result$objval)
+  gap <- .scalar_or_na(if (!is.null(result$metadata$gap)) result$metadata$gap else result$mipgap)
+  runtime <- .scalar_or_na(
+    if (!is.null(result$metadata$run_time)) result$metadata$run_time else result$runtime
+  )
+  list(
+    backend = backend,
+    status = status,
+    objective = objective,
+    gap = gap,
+    runtime = runtime
+  )
+}
+
+#' Extract Data from a Matched Design
+#'
+#' Returns the original unit-level data with the full-length matched-set
+#' membership and matching weights appended.
+#'
+#' @param object A `netmatch` object.
+#' @param drop_unmatched If `TRUE`, omit unmatched units. If `FALSE`, retain
+#'   them with missing `subclass` and zero `weights`.
+#' @return A data frame containing the original columns plus `subclass` and
+#'   `weights`.
+#' @export
+matched_data <- function(object, drop_unmatched = TRUE) {
+  if (!inherits(object, "netmatch")) {
+    stop("`object` must be a netmatch object.", call. = FALSE)
+  }
+  if (!is.logical(drop_unmatched) || length(drop_unmatched) != 1L || is.na(drop_unmatched)) {
+    stop("`drop_unmatched` must be TRUE or FALSE.", call. = FALSE)
+  }
+  out <- object$original_data
+  out$subclass <- object$subclass
+  out$weights <- object$weights
+  if (drop_unmatched) out <- out[object$matched, , drop = FALSE]
   out
 }
 
@@ -195,8 +315,8 @@ netmatch <- function(data,
     stop("Need at least one treated and one control unit.", call. = FALSE)
   }
   D <- as.matrix(D)
-  rownames(D) <- as.character(treat_ids)
-  colnames(D) <- as.character(ctrl_ids)
+  rownames(D) <- rownames(data)[treat_ids]
+  colnames(D) <- rownames(data)[ctrl_ids]
   if (method == "single") {
     tc_dist <- unit_dist[treat_ids, ctrl_ids, drop = FALSE]
     D[tc_dist <= kappa] <- Inf
@@ -399,6 +519,7 @@ netmatch <- function(data,
   reported_objective <- if (identical(solver, "gurobi")) res$objval else NULL
   checked <- .validate_mip_solution(model, res$x, reported_objective = reported_objective)
   res$x <- checked$x
+  res$objective <- checked$objective
 
   subclass <- .extract_subclasses(res, treat_ids, ctrl_ids, E, nrow(data))
   keep_units <- !is.na(subclass)
@@ -706,12 +827,10 @@ netmatch <- function(data,
 
 #' @export
 print.netmatch <- function(x, ...) {
-  cat("<netmatch>\n")
-  cat("  Method: ", x$method, "\n", sep = "")
-  cat("  Kappa: ", x$kappa, "\n", sep = "")
-  cat("  Solver: ", x$solver, "\n", sep = "")
-  cat("  Matched units: ", nrow(x$data), "\n", sep = "")
-  cat("  Matched sets: ", length(unique(x$data$subclass)), "\n", sep = "")
+  n_sets <- length(unique(x$subclass[!is.na(x$subclass)]))
+  cat("<netmatch> ", x$method, " matching; ", x$estimand, " estimand\n", sep = "")
+  cat("  ", sum(x$matched), "/", length(x$matched), " units in ", n_sets,
+      " matched sets; ", x$solver_info$backend, " backend\n", sep = "")
   invisible(x)
 }
 
@@ -719,19 +838,72 @@ print.netmatch <- function(x, ...) {
 #'
 #' @param object A `netmatch` object.
 #' @param ... Unused.
-#' @return A data frame with one row per matched set and columns for subclass,
-#'   total set size, treated count, and control count.
+#' @return A `netmatch_summary` object containing sample counts, effective
+#'   sample sizes, matched-set sizes, covariate balance, network diagnostics,
+#'   and stable solver information.
 #' @rdname netmatch
 #' @export
 summary.netmatch <- function(object, ...) {
+  z <- object$original_data[[object$treat]]
+  groups <- list(overall = rep(TRUE, length(z)), treated = z == 1, control = z == 0)
+  sample_counts <- do.call(rbind, lapply(names(groups), function(group) {
+    ids <- groups[[group]]
+    data.frame(
+      group = group,
+      original = sum(ids),
+      matched = sum(ids & object$matched),
+      unmatched = sum(ids & !object$matched),
+      stringsAsFactors = FALSE
+    )
+  }))
+  rownames(sample_counts) <- NULL
+
+  ess <- do.call(rbind, lapply(names(groups), function(group) {
+    w <- object$weights[groups[[group]]]
+    data.frame(
+      group = group,
+      ess = if (sum(w^2) > 0) sum(w)^2 / sum(w^2) else 0,
+      stringsAsFactors = FALSE
+    )
+  }))
+  rownames(ess) <- NULL
+
   df <- object$data
-  z <- df[[object$treat]]
-  set_tab <- stats::aggregate(z, list(subclass = df$subclass), function(v) {
+  matched_z <- df[[object$treat]]
+  set_tab <- stats::aggregate(matched_z, list(subclass = df$subclass), function(v) {
     c(n = length(v), nt = sum(v == 1), nc = sum(v == 0))
   })
-  stats <- do.call(data.frame, set_tab)
-  names(stats) <- c("subclass", "n", "nt", "nc")
-  stats
+  set_sizes <- do.call(data.frame, set_tab)
+  names(set_sizes) <- c("subclass", "n", "nt", "nc")
+  diagnostics <- diagnose_match(object)
+
+  out <- list(
+    sample_counts = sample_counts,
+    ess = ess,
+    set_sizes = set_sizes,
+    covariate_balance = diagnostics$covariate_balance,
+    network_summary = diagnostics$network_summary,
+    solver_info = object$solver_info
+  )
+  class(out) <- "netmatch_summary"
+  out
+}
+
+#' @export
+print.netmatch_summary <- function(x, ...) {
+  cat("Matched design summary\n")
+  cat("\nSample counts\n")
+  print(x$sample_counts, row.names = FALSE)
+  cat("\nEffective sample size\n")
+  print(x$ess, row.names = FALSE)
+  cat("\nMatched-set sizes\n")
+  print(x$set_sizes, row.names = FALSE)
+  cat("\nCovariate balance (absolute SMD)\n")
+  print(x$covariate_balance, row.names = FALSE)
+  cat("\nNetwork summary\n")
+  print(x$network_summary, row.names = FALSE)
+  cat("\nSolver: ", x$solver_info$backend, " (", x$solver_info$status, ")\n", sep = "")
+  invisible(x)
 }
 
 #' Plot Within-Set Network Distances

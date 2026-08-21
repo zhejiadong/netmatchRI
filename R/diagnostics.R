@@ -1,11 +1,18 @@
 #' Diagnose a Matched Design
 #'
-#' Computes compact covariate and network diagnostics for a `netmatch` object.
+#' Computes covariate balance and within-set network-distance diagnostics for a
+#' `netmatch` object. Factor covariates are expanded into model-matrix indicator
+#' columns. For each expanded covariate, both standardized mean differences use
+#' the same pooled original-sample standard deviation,
+#' `sqrt(((n1 - 1) * var1 + (n0 - 1) * var0) / (n1 + n0 - 2))`. The before
+#' difference uses unweighted original-sample means; the after difference uses
+#' the unit matching weights among matched units.
 #'
 #' @param match A `netmatch` object.
-#' @return A list with `covariate_balance`, `network_distance`,
-#'   `within_distance_table`, and backward-compatible aliases
-#'   `covariate_smd` and `average_within_distance`.
+#' @return A list with exactly three fields: `covariate_balance`,
+#'   `network_summary`, and `within_distance_table`. The network summary reports
+#'   finite and disconnected within-set unit-pair counts. Distance summaries are
+#'   `NA` when there are no finite within-set distances.
 #' @examples
 #' \dontrun{
 #' sim <- simulate_netmatch_example()
@@ -13,7 +20,7 @@
 #'               method = "dual", kappa = 2, solver = "auto")
 #' diag <- diagnose_match(m)
 #' diag$covariate_balance
-#' diag$network_distance
+#' diag$network_summary
 #' diag$within_distance_table
 #' }
 #' @export
@@ -21,59 +28,84 @@ diagnose_match <- function(match) {
   if (!inherits(match, "netmatch")) {
     stop("`match` must be a netmatch object.", call. = FALSE)
   }
-  df <- match$data
-  z <- df[[match$treat]]
-  cov_smd <- data.frame(
-    covariate = match$covariates,
-    abs_smd = vapply(match$covariates, function(x) .matched_smd(df, x, match$treat), numeric(1)),
-    stringsAsFactors = FALSE
-  )
+  covariate_balance <- .covariate_balance(match)
+  within_d <- .within_distances(match$subclass, match$network_distance)
+  finite_d <- within_d[is.finite(within_d)]
 
-  within_d <- .within_distances(df, match$network_distance)
-  tab <- table(factor(within_d, levels = sort(unique(within_d))))
-  dist_tab <- data.frame(
-    distance = as.numeric(names(tab)),
-    count = as.integer(tab),
-    proportion = as.numeric(tab) / sum(tab)
-  )
+  if (length(within_d)) {
+    values <- sort(unique(within_d))
+    counts <- vapply(values, function(value) sum(within_d == value), integer(1))
+    dist_tab <- data.frame(
+      distance = values,
+      count = counts,
+      proportion = counts / length(within_d)
+    )
+  } else {
+    dist_tab <- data.frame(
+      distance = numeric(0), count = integer(0), proportion = numeric(0)
+    )
+  }
 
   network_summary <- data.frame(
     n_pairs = length(within_d),
-    min_distance = min(within_d, na.rm = TRUE),
-    mean_distance = mean(within_d, na.rm = TRUE),
-    max_distance = max(within_d, na.rm = TRUE)
+    n_finite_pairs = length(finite_d),
+    n_disconnected_pairs = sum(is.infinite(within_d)),
+    min_distance = if (length(finite_d)) min(finite_d) else NA_real_,
+    mean_distance = if (length(finite_d)) mean(finite_d) else NA_real_,
+    max_distance = if (length(finite_d)) max(finite_d) else NA_real_
   )
 
   list(
-    covariate_balance = cov_smd,
-    network_distance = network_summary,
-    within_distance_table = dist_tab,
-    covariate_smd = cov_smd,
-    average_within_distance = network_summary$mean_distance
+    covariate_balance = covariate_balance,
+    network_summary = network_summary,
+    within_distance_table = dist_tab
   )
 }
 
-.matched_smd <- function(df, x, treat) {
-  z <- df[[treat]]
-  s <- df$subclass
-  sd0 <- sqrt((stats::var(df[[x]][z == 1]) + stats::var(df[[x]][z == 0])) / 2)
-  if (!is.finite(sd0) || sd0 == 0) return(NA_real_)
-  sets <- split(seq_len(nrow(df)), s)
-  diffs <- vapply(sets, function(ids) {
-    zz <- z[ids]
-    if (!any(zz == 1) || !any(zz == 0)) return(NA_real_)
-    mean(df[[x]][ids][zz == 1]) - mean(df[[x]][ids][zz == 0])
-  }, numeric(1))
-  abs(mean(diffs, na.rm = TRUE) / sd0)
+.covariate_balance <- function(match) {
+  X <- .covariate_matrix(match$original_data, match$covariates)
+  z <- match$original_data[[match$treat]]
+  w <- match$weights
+  matched <- match$matched & w > 0
+
+  rows <- lapply(seq_len(ncol(X)), function(j) {
+    x <- X[, j]
+    n1 <- sum(z == 1)
+    n0 <- sum(z == 0)
+    pooled_sd <- sqrt(
+      ((n1 - 1) * stats::var(x[z == 1]) + (n0 - 1) * stats::var(x[z == 0])) /
+        (n1 + n0 - 2)
+    )
+    before <- mean(x[z == 1]) - mean(x[z == 0])
+    after <- .weighted_mean(x[matched & z == 1], w[matched & z == 1]) -
+      .weighted_mean(x[matched & z == 0], w[matched & z == 0])
+    if (!is.finite(pooled_sd) || pooled_sd == 0) {
+      before_smd <- after_smd <- NA_real_
+    } else {
+      before_smd <- abs(before / pooled_sd)
+      after_smd <- abs(after / pooled_sd)
+    }
+    data.frame(
+      covariate = colnames(X)[j],
+      before_abs_smd = before_smd,
+      after_abs_smd = after_smd,
+      stringsAsFactors = FALSE
+    )
+  })
+  do.call(rbind, rows)
 }
 
-.within_distances <- function(df, dist) {
-  idx <- as.integer(rownames(df))
-  sets <- split(idx, df$subclass)
-  out <- unlist(lapply(sets, function(ids) {
-    if (length(ids) < 2) return(numeric(0))
-    pr <- utils::combn(ids, 2)
-    dist[cbind(pr[1, ], pr[2, ])]
+.weighted_mean <- function(x, w) {
+  if (!length(x) || !length(w) || sum(w) <= 0) return(NA_real_)
+  sum(x * w) / sum(w)
+}
+
+.within_distances <- function(subclass, dist) {
+  ids <- which(!is.na(subclass))
+  sets <- split(ids, subclass[ids], drop = TRUE)
+  unlist(lapply(sets, function(set_ids) {
+    if (length(set_ids) < 2) return(numeric(0))
+    pairs <- utils::combn(set_ids, 2)
+    dist[cbind(pairs[1, ], pairs[2, ])]
   }), use.names = FALSE)
-  out[is.finite(out)]
 }

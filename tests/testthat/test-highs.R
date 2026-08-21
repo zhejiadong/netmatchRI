@@ -35,7 +35,7 @@ test_that("default and explicit HiGHS solve a small feasible design", {
   )
 
   default_fit <- netmatch(dat, "Z", c("X1", "X2"), D,
-                          method = "dual", kappa = 2)
+                          method = "dual", kappa = 2, include_solver = TRUE)
   explicit_fit <- netmatch(dat, "Z", c("X1", "X2"), D,
                            method = "dual", kappa = 2, solver = "highs")
 
@@ -291,7 +291,8 @@ test_that("available solvers agree on an original simulation smoke test", {
     netmatch(
       data = sim$data, treat = "Z", covariates = c("X1", "X2", "X3"),
       network = sim$net_dist, method = "dual", kappa = 2,
-      solver = solver, timelimit = 120, mipgap = 0, threads = 1
+      solver = solver, timelimit = 120, mipgap = 0, threads = 1,
+      include_solver = TRUE
     )
   }
 

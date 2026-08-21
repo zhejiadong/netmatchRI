@@ -7,7 +7,7 @@ critical_sensitivity(match, outcome, rho = seq(0, 1, by = 0.01),
 }
 \arguments{
 \item{match}{A \code{netmatch} object, ideally from \code{method = "dual"}.}
-\item{outcome}{Name of the outcome column.}
+\item{outcome}{Name of a numeric outcome column with finite, non-missing values for all matched units.}
 \item{rho}{Finite numeric values from 0 to 1. Rho controls how residual covariance changes with network distance.}
 \item{alpha}{Test level.}
 \item{kappa}{Analysis cutoff. Defaults to \code{match$kappa}.}

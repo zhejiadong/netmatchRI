@@ -8,22 +8,21 @@ diagnose_match(match)
 \item{match}{A \code{netmatch} object.}
 }
 \value{
-A list with:
+A list with exactly three fields:
 \itemize{
-\item \code{covariate_balance}: one row per covariate with the matched
-absolute standardized mean difference.
-\item \code{network_distance}: one-row summary with the number of within-set
-unit pairs and the minimum, mean, and maximum within-set graph distance.
-\item \code{within_distance_table}: counts and proportions for each observed
-within-set graph distance.
-\item \code{covariate_smd}: backward-compatible alias of
-\code{covariate_balance}.
-\item \code{average_within_distance}: backward-compatible alias of the mean
-within-set graph distance.
+\item \code{covariate_balance}: columns \code{covariate}, \code{before_abs_smd}, and \code{after_abs_smd} for each model-matrix covariate term.
+\item \code{network_summary}: one-row summary with total, finite, and disconnected within-set pair counts and finite-distance minimum, mean, and maximum.
+\item \code{within_distance_table}: counts and proportions for each within-set distance, including \code{Inf} for disconnected pairs when present.
 }
+Distance summaries are \code{NA} when there are no finite within-set distances.
 }
 \description{
-Computes compact covariate balance and within-set network-distance diagnostics.
+Computes covariate balance and within-set network-distance diagnostics.
+}
+\details{
+Factor covariates are expanded into model-matrix indicator columns. For every expanded term, the before and after absolute standardized mean differences use one fixed pooled original-sample standard deviation,
+\deqn{\sqrt{\{(n_1-1)s_1^2 + (n_0-1)s_0^2\}/(n_1+n_0-2)}.}
+The before difference uses unweighted original-sample treatment-group means. The after difference uses the unit matching weights among matched units.
 }
 \examples{
 \dontrun{
@@ -32,7 +31,7 @@ m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
               method = "dual", kappa = 2, solver = "auto")
 diag <- diagnose_match(m)
 diag$covariate_balance
-diag$network_distance
+diag$network_summary
 diag$within_distance_table
 }
 }

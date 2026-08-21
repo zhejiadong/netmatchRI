@@ -1,3 +1,14 @@
+.validate_outcome <- function(data, outcome) {
+  if (!outcome %in% names(data)) {
+    stop("`outcome` column not found.", call. = FALSE)
+  }
+  y <- data[[outcome]]
+  if (!is.numeric(y) || anyNA(y) || any(!is.finite(y))) {
+    stop("`outcome` must be numeric, finite and non-missing.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 .mw_u <- function(y_t, y_c) {
   sum(outer(y_t, y_c, ">"))
 }
@@ -7,6 +18,7 @@
                             treat = "Z",
                             subclass = "subclass",
                             weight_type = c("ns", "ntc")) {
+  .validate_outcome(data, outcome)
   weight_type <- match.arg(weight_type)
   sets <- sort(unique(data[[subclass]]))
   rows <- lapply(sets, function(s) {

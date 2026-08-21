@@ -13,7 +13,7 @@ RI_Design(match, outcome, kappa = NULL, weight_type = c("ns", "ntc"))
 }
 \arguments{
 \item{match}{A \code{netmatch} object.}
-\item{outcome}{Name of the outcome column.}
+\item{outcome}{Name of a numeric outcome column with finite, non-missing values for all matched units.}
 \item{eta}{One finite number from 0 to 1. Eta scales residual covariance between matched sets.}
 \item{rho}{One finite number from 0 to 1. Rho controls how residual covariance changes with network distance.}
 \item{kappa}{Analysis cutoff. Defaults to the matching cutoff stored in \code{match$kappa}.}

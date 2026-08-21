@@ -98,7 +98,7 @@ m_dual <- netmatch(
 
 diagnostics <- diagnose_match(m_dual)
 diagnostics$covariate_balance
-diagnostics$network_distance
+diagnostics$network_summary
 
 ri_naive <- RI_Naive(m_dual, "Y")
 ri_sensitivity <- RI_Sensitivity(m_dual, "Y", eta = 0.03, rho = 0.10)
