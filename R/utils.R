@@ -27,6 +27,18 @@
   invisible(TRUE)
 }
 
+.validate_reserved_columns <- function(data) {
+  reserved <- intersect(c("subclass", "weights"), names(data))
+  if (length(reserved)) {
+    stop(
+      "`data` must not contain reserved columns: ",
+      paste(reserved, collapse = ", "), ". Rename them before matching.",
+      call. = FALSE
+    )
+  }
+  invisible(TRUE)
+}
+
 .validate_network <- function(network,
                               network_type = c("auto", "adjacency", "distance"),
                               data_rownames = NULL) {
@@ -126,6 +138,25 @@
 .covariate_matrix <- function(data, covariates) {
   X <- stats::model.matrix(stats::reformulate(covariates), data = data)
   X[, colnames(X) != "(Intercept)", drop = FALSE]
+}
+
+.balance_covariate_matrix <- function(data, covariates) {
+  pieces <- lapply(covariates, function(name) {
+    x <- data[[name]]
+    if (is.factor(x) || is.character(x)) {
+      x <- factor(x, levels = if (is.factor(x)) levels(x) else unique(x))
+      out <- vapply(levels(x), function(level) as.numeric(x == level), numeric(length(x)))
+      if (is.null(dim(out))) out <- matrix(out, ncol = 1L)
+      colnames(out) <- paste0(name, "=", levels(x))
+      return(out)
+    }
+    out <- matrix(as.numeric(x), ncol = 1L)
+    colnames(out) <- name
+    out
+  })
+  out <- do.call(cbind, pieces)
+  colnames(out) <- make.unique(colnames(out))
+  out
 }
 
 .mahalanobis_matrix <- function(data, treat, covariates, cov_type = c("pooled", "overall")) {

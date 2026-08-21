@@ -1,8 +1,8 @@
 #' Diagnose a Matched Design
 #'
 #' Computes covariate balance and within-set network-distance diagnostics for a
-#' `netmatch` object. Factor covariates are expanded into model-matrix indicator
-#' columns. For each expanded covariate, both standardized mean differences use
+#' `netmatch` object. Each level of a factor covariate is reported as an
+#' indicator. For each reported covariate, both standardized mean differences use
 #' the same pooled original-sample standard deviation,
 #' `sqrt(((n1 - 1) * var1 + (n0 - 1) * var0) / (n1 + n0 - 2))`. The before
 #' difference uses unweighted original-sample means; the after difference uses
@@ -63,7 +63,7 @@ diagnose_match <- function(match) {
 }
 
 .covariate_balance <- function(match) {
-  X <- .covariate_matrix(match$original_data, match$covariates)
+  X <- .balance_covariate_matrix(match$original_data, match$covariates)
   z <- match$original_data[[match$treat]]
   w <- match$weights
   matched <- match$matched & w > 0

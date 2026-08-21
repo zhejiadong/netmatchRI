@@ -48,7 +48,7 @@ For \code{plot.netmatch()}, the diagnostics list from \code{\link{diagnose_match
 Builds the dual-penalty matched design via a mixed-integer program. The covariate-only and single-penalty comparison designs use \pkg{optmatch}.
 }
 \details{
-\code{solver}, \code{caliper}, \code{timelimit}, \code{mipgap}, and \code{threads} are used only by \code{method = "dual"}. \code{kappa} is ignored by \code{method = "covariate"}. \code{method = "single"} uses \code{kappa} but not the mixed-integer solver controls.
+The column names \code{subclass} and \code{weights} are reserved for matching output and must not already be present in \code{data}. \code{solver}, \code{caliper}, \code{timelimit}, \code{mipgap}, and \code{threads} are used only by \code{method = "dual"}. \code{kappa} is ignored by \code{method = "covariate"}. \code{method = "single"} uses \code{kappa} but not the mixed-integer solver controls.
 }
 \examples{
 \dontrun{

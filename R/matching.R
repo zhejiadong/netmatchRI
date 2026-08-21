@@ -39,7 +39,9 @@
 #'   the estimand and resolved network type, the unit-level network-distance
 #'   matrix, and stable solver information. Complete backend output is included only
 #'   when `include_solver = TRUE`.
-#' @details `solver`, `caliper`, `timelimit`, `mipgap`, and `threads` are used
+#' @details The column names `subclass` and `weights` are reserved for matching
+#'   output and must not already be present in `data`. `solver`, `caliper`,
+#'   `timelimit`, `mipgap`, and `threads` are used
 #'   only by `method = "dual"`; comparison methods use
 #'   `optmatch::fullmatch()`. `kappa` is ignored by `method = "covariate"`.
 #'   `method = "single"` uses `kappa` but not the mixed-integer solver controls.
@@ -82,6 +84,7 @@ netmatch <- function(data,
   network_type <- match.arg(network_type)
   if (!is.data.frame(data)) stop("`data` must be a data frame.", call. = FALSE)
   if (!treat %in% names(data)) stop("`treat` column not found.", call. = FALSE)
+  .validate_reserved_columns(data)
   .validate_covariates(data, covariates)
   z <- data[[treat]]
   .check_binary(z, treat)

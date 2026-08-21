@@ -109,10 +109,36 @@ test_that("diagnostics expand factors and use clear field names", {
   expect_named(d, c("covariate_balance", "network_summary", "within_distance_table"))
   expect_named(d$covariate_balance,
                c("covariate", "before_abs_smd", "after_abs_smd"))
-  expect_true(any(grepl("^F", d$covariate_balance$covariate)))
+  expect_true(all(c("F=a", "F=b") %in% d$covariate_balance$covariate))
   expect_true(all(c("n_pairs", "n_finite_pairs", "n_disconnected_pairs",
                     "min_distance", "mean_distance", "max_distance") %in%
                   names(d$network_summary)))
+})
+
+test_that("diagnostics use indicators for every unordered and ordered factor level", {
+  fx <- make_mature_fixture()
+  fx$data$F <- factor(c("a", "b", "c", "a", "b", "c"))
+  fx$data$OF <- ordered(c("low", "mid", "high", "low", "mid", "high"),
+                        levels = c("low", "mid", "high"))
+  m <- netmatch(fx$data, "Z", c("X", "F", "OF"), fx$network,
+                method = "covariate", network_type = "distance")
+  balance_names <- diagnose_match(m)$covariate_balance$covariate
+  expect_true(all(c("F=a", "F=b", "F=c") %in% balance_names))
+  expect_true(all(c("OF=low", "OF=mid", "OF=high") %in% balance_names))
+  expect_false(any(grepl("\\.L$|\\.Q$", balance_names)))
+})
+
+test_that("reserved matching column names are rejected clearly", {
+  fx <- make_mature_fixture()
+  for (reserved in c("subclass", "weights")) {
+    bad <- fx$data
+    bad[[reserved]] <- 1
+    expect_error(
+      netmatch(bad, "Z", c("X", "F"), fx$network,
+               method = "covariate", network_type = "distance"),
+      "reserved columns"
+    )
+  }
 })
 
 test_that("diagnostics retain disconnected pair counts with no finite distances", {
