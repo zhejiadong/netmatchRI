@@ -100,9 +100,9 @@ diagnostics <- diagnose_match(m_dual)
 diagnostics$covariate_balance
 diagnostics$network_distance
 
-ri_naive <- RI_naive(m_dual, "Y")
-ri_decay <- RI_decay(m_dual, "Y", eta = 0.03, rho = 0.10)
-ri_design <- RI_design(m_dual, "Y")
+ri_naive <- RI_Naive(m_dual, "Y")
+ri_sensitivity <- RI_Sensitivity(m_dual, "Y", eta = 0.03, rho = 0.10)
+ri_design <- RI_Design(m_dual, "Y")
 
 sens <- netmatch_sensitivity(
   m_dual,
@@ -113,8 +113,8 @@ sens <- netmatch_sensitivity(
 
 crit <- critical_sensitivity(m_dual, "Y")
 
-plot_sensitivity(sens, type = "pvalue")
-plot_sensitivity(crit, type = "critical")
+plot_sensitivity(sens)
+plot_sensitivity(crit)
 ```
 
 For your own study, supply one row per unit, a binary treatment indicator such
@@ -127,7 +127,7 @@ as `Z`, observed covariates such as `X1`, `X2`, `X3`, an outcome column such as
 - `netmatch()` builds a matched design under the selected matching method.
 - `diagnose_match()` summarizes covariate balance and within-set network
   distances.
-- `RI_naive()`, `RI_decay()`, and `RI_design()` run randomization-based inference
+- `RI_Naive()`, `RI_Sensitivity()`, and `RI_Design()` run randomization-based inference
   for matched designs, including sensitivity analysis and design-based approaches.
 - `netmatch_sensitivity()` evaluates p-values over an `(eta, rho)` grid.
 - `critical_sensitivity()` computes the critical sensitivity curve.

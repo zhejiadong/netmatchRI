@@ -1,34 +1,49 @@
 #' Randomization-Based Inference Given a Matched Design
 #'
-#' `RI_naive()`, `RI_decay()`, and `RI_design()` run normal-approximation
-#' randomization-based inference for a `netmatch` object. `RI_decay()` supports
-#' sensitivity analysis, while `RI_design()` provides the design-based analysis
-#' and keeps the distance truncation at `kappa`: across-set covariance is set to
-#' zero whenever the matched-set distance is greater than `kappa`.
+#' `RI_Naive()`, `RI_Sensitivity()`, and `RI_Design()` run two-sided,
+#' normal-approximation randomization-based inference for a `netmatch` object.
+#' `RI_Sensitivity()` allows residual dependence between matched sets, while
+#' `RI_Design()` provides the design-based analysis and keeps the distance
+#' truncation at `kappa`: across-set covariance is set to zero whenever the
+#' matched-set distance is greater than `kappa`.
 #'
 #' @param match A `netmatch` object.
 #' @param outcome Name of the outcome column.
-#' @param method Variance method: `"decay"`, `"naive"`, or `"design"`.
-#' @param eta Magnitude parameter for sensitivity analysis.
-#' @param rho Decay-rate parameter for sensitivity analysis.
+#' @param method Internal variance method: `"sensitivity"`, `"naive"`, or
+#'   `"design"`.
+#' @param eta A number from 0 to 1 that scales residual covariance between
+#'   matched sets.
+#' @param rho A number from 0 to 1 that controls how residual covariance changes
+#'   with network distance. For sets at distance `d`, the sensitivity multiplier
+#'   is `eta * rho^(d - 1)`.
 #' @param kappa Analysis cutoff. Defaults to the matching cutoff stored in
 #'   `match$kappa`.
-#' @param weight_type Weighting scheme for matched-set U-statistics.
+#' @param weight_type Matched-set weighting. `"ns"` uses `1 / (n_s + 1)`,
+#'   where `n_s` is the set size. `"ntc"` uses `1 / (n_ts * n_cs)`, where
+#'   `n_ts` and `n_cs` are the treated and control counts in the set.
 #' @return A randomization-based inference result object with a one-row `result` data frame,
 #'   matched-set `detail`, covariance matrix, matched-set distance matrix,
-#'   analysis `kappa`, and the original `match`.
+#'   outcome, weighting choice, complete analysis options, analysis `kappa`,
+#'   and the original `match`.
+#' @details For two matched sets at distance `d`, sensitivity analysis multiplies
+#'   the covariance bound by `eta * rho^(d - 1)`. The set statistic counts a
+#'   treated outcome only when it is strictly greater than a control outcome;
+#'   tied outcomes add zero. P-values use a two-sided normal approximation.
 #' @examples
 #' \dontrun{
 #' sim <- simulate_netmatch_example()
 #' m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
 #'               method = "dual", kappa = 2, solver = "auto")
-#' RI_naive(m, "Y")
-#' RI_decay(m, "Y", eta = 0.03, rho = 0.10)
-#' RI_design(m, "Y")
+#' RI_Naive(m, "Y")
+#' RI_Sensitivity(m, "Y", eta = 0.03, rho = 0.10)
+#' RI_Design(m, "Y")
 #' }
+#' @name RI_Naive
+NULL
+
 netmatch_test <- function(match,
                           outcome,
-                          method = c("decay", "naive", "design"),
+                          method = c("sensitivity", "naive", "design"),
                           eta = 0.03,
                           rho = 0.10,
                           kappa = NULL,
@@ -38,6 +53,10 @@ netmatch_test <- function(match,
   }
   method <- match.arg(method)
   weight_type <- match.arg(weight_type)
+  if (method == "sensitivity") {
+    .validate_unit_interval(eta, "eta", scalar = TRUE)
+    .validate_unit_interval(rho, "rho", scalar = TRUE)
+  }
   if (!outcome %in% names(match$data)) stop("`outcome` column not found.", call. = FALSE)
   kappa <- .analysis_kappa(match, kappa)
 
@@ -57,8 +76,8 @@ netmatch_test <- function(match,
 
   result <- data.frame(
     method = method,
-    eta = if (method == "decay") eta else NA_real_,
-    rho = if (method == "decay") rho else NA_real_,
+    eta = if (method == "sensitivity") eta else NA_real_,
+    rho = if (method == "sensitivity") rho else NA_real_,
     kappa = kappa,
     statistic = obs$statistic,
     expectation = obs$expectation,
@@ -74,15 +93,21 @@ netmatch_test <- function(match,
     covariance = Sigma,
     set_distance = set_dist,
     kappa = kappa,
+    outcome = outcome,
+    weight_type = weight_type,
+    options = list(
+      outcome = outcome, method = method, eta = result$eta, rho = result$rho,
+      kappa = kappa, weight_type = weight_type
+    ),
     match = match
   )
   class(out) <- "netmatch_test"
   out
 }
 
-#' @rdname netmatch_test
+#' @rdname RI_Naive
 #' @export
-RI_naive <- function(match,
+RI_Naive <- function(match,
                      outcome,
                      kappa = NULL,
                      weight_type = c("ns", "ntc")) {
@@ -95,9 +120,9 @@ RI_naive <- function(match,
   )
 }
 
-#' @rdname netmatch_test
+#' @rdname RI_Naive
 #' @export
-RI_decay <- function(match,
+RI_Sensitivity <- function(match,
                      outcome,
                      eta = 0.03,
                      rho = 0.10,
@@ -106,7 +131,7 @@ RI_decay <- function(match,
   netmatch_test(
     match = match,
     outcome = outcome,
-    method = "decay",
+    method = "sensitivity",
     eta = eta,
     rho = rho,
     kappa = kappa,
@@ -114,9 +139,9 @@ RI_decay <- function(match,
   )
 }
 
-#' @rdname netmatch_test
+#' @rdname RI_Naive
 #' @export
-RI_design <- function(match,
+RI_Design <- function(match,
                       outcome,
                       kappa = NULL,
                       weight_type = c("ns", "ntc")) {
@@ -138,16 +163,23 @@ print.netmatch_test <- function(x, ...) {
 #' Sensitivity Analysis for Network Dependence
 #'
 #' Evaluates sensitivity analysis results over a grid of eta and rho values.
+#' Eta scales residual covariance between matched sets. Rho controls how that
+#' covariance changes with distance: for sets at distance `d`, the multiplier
+#' is `eta * rho^(d - 1)`.
 #'
 #' @param match A `netmatch` object.
 #' @param outcome Name of the outcome column.
-#' @param eta Numeric vector of eta values.
-#' @param rho Numeric vector of rho values.
+#' @param eta Finite numeric values from 0 to 1.
+#' @param rho Finite numeric values from 0 to 1.
 #' @param kappa Analysis cutoff. Defaults to the matching cutoff stored in
 #'   `match$kappa`.
-#' @param weight_type Weighting scheme for matched-set U-statistics.
+#' @param weight_type Matched-set weighting. `"ns"` uses `1 / (n_s + 1)`;
+#'   `"ntc"` uses `1 / (n_ts * n_cs)`.
 #' @return A `netmatch_sensitivity` object with a p-value `grid`, source
-#'   `match`, `outcome` name, and analysis `kappa`.
+#'   `match`, and the complete analysis options.
+#' @details P-values use a two-sided normal approximation. The set statistic
+#'   counts a treated outcome only when it is strictly greater than a control
+#'   outcome; tied outcomes add zero.
 #' @examples
 #' \dontrun{
 #' sim <- simulate_netmatch_example()
@@ -173,6 +205,8 @@ netmatch_sensitivity <- function(match,
   }
   weight_type <- match.arg(weight_type)
   kappa <- .analysis_kappa(match, kappa)
+  .validate_unit_interval(eta, "eta")
+  .validate_unit_interval(rho, "rho")
   if (!outcome %in% names(match$data)) stop("`outcome` column not found.", call. = FALSE)
 
   obs <- .observed_stats(match$data, outcome, match$treat, "subclass", weight_type)
@@ -184,10 +218,10 @@ netmatch_sensitivity <- function(match,
   grid <- expand.grid(eta = eta, rho = rho, KEEP.OUT.ATTRS = FALSE)
   rows <- vector("list", nrow(grid))
   for (i in seq_len(nrow(grid))) {
-    variance <- .weighted_variance_from_components(components, w, "decay", grid$eta[i], grid$rho[i])
+    variance <- .weighted_variance_from_components(components, w, "sensitivity", grid$eta[i], grid$rho[i])
     pv <- .normal_pvalue(obs$statistic, obs$expectation, variance)
     rows[[i]] <- data.frame(
-      method = "decay",
+      method = "sensitivity",
       eta = grid$eta[i],
       rho = grid$rho[i],
       kappa = kappa,
@@ -199,7 +233,14 @@ netmatch_sensitivity <- function(match,
       stringsAsFactors = FALSE
     )
   }
-  out <- list(grid = do.call(rbind, rows), match = match, outcome = outcome, kappa = kappa)
+  out <- list(
+    grid = do.call(rbind, rows), match = match, outcome = outcome,
+    kappa = kappa, weight_type = weight_type,
+    options = list(
+      outcome = outcome, eta = eta, rho = rho, kappa = kappa,
+      weight_type = weight_type
+    )
+  )
   class(out) <- "netmatch_sensitivity"
   out
 }
@@ -214,18 +255,21 @@ print.netmatch_sensitivity <- function(x, ...) {
 #' Critical Sensitivity Curve for Dual-Penalty Matching
 #'
 #' Computes the critical value of eta as a function of rho that solves
-#' `p(eta, rho) = alpha` for the sensitivity analysis.
+#' `p(eta, rho) = alpha` for the two-sided normal-approximation analysis.
 #'
 #' @param match A `netmatch` object, ideally from `method = "dual"`.
 #' @param outcome Name of the outcome column.
-#' @param rho Numeric vector of rho values.
+#' @param rho Finite numeric values from 0 to 1. For matched sets at distance
+#'   `d`, residual covariance is multiplied by `eta * rho^(d - 1)`.
 #' @param alpha Test level.
 #' @param kappa Analysis cutoff. Defaults to `match$kappa`.
-#' @param weight_type Weighting scheme for matched-set U-statistics.
+#' @param weight_type Matched-set weighting. `"ns"` uses `1 / (n_s + 1)`;
+#'   `"ntc"` uses `1 / (n_ts * n_cs)`.
 #' @return A `netmatch_critical_sensitivity` object with the critical `curve`,
 #'   test level, cutoff, observed statistic, null expectation, diagonal
 #'   variance component, naive test result, interpretation text, source
-#'   `match`, and `outcome` name.
+#'   `match`, and the complete analysis options. The curve keeps every
+#'   non-negative finite critical eta and marks whether it lies in `[0, 1]`.
 #' @examples
 #' \dontrun{
 #' sim <- simulate_netmatch_example()
@@ -245,6 +289,7 @@ critical_sensitivity <- function(match,
   if (!inherits(match, "netmatch")) {
     stop("`match` must be a netmatch object.", call. = FALSE)
   }
+  .validate_unit_interval(rho, "rho")
   if (!identical(match$method, "dual")) {
     warning("The critical-curve interpretation is designed for dual-penalty matching.", call. = FALSE)
   }
@@ -253,9 +298,7 @@ critical_sensitivity <- function(match,
   if (!is.numeric(alpha) || length(alpha) != 1 || !is.finite(alpha) || alpha <= 0 || alpha >= 1) {
     stop("`alpha` must be one number between 0 and 1.", call. = FALSE)
   }
-  if (!is.numeric(rho) || any(!is.finite(rho)) || any(rho < 0 | rho > 1)) {
-    stop("`rho` must contain values in [0, 1].", call. = FALSE)
-  }
+
   if (!outcome %in% names(match$data)) stop("`outcome` column not found.", call. = FALSE)
 
   obs <- .observed_stats(match$data, outcome, match$treat, "subclass", weight_type)
@@ -268,7 +311,11 @@ critical_sensitivity <- function(match,
   z_alpha <- stats::qnorm(1 - alpha / 2)
   numerator <- delta^2 / z_alpha^2 - v_diag
 
-  curve <- data.frame(rho = rho, eta_critical = NA_real_)
+  curve <- data.frame(
+    rho = rho,
+    eta_critical = rep(NA_real_, length(rho)),
+    eta_in_range = rep(NA, length(rho))
+  )
   S <- nrow(components$bound)
   for (r in seq_along(rho)) {
     denom <- 0
@@ -283,10 +330,11 @@ critical_sensitivity <- function(match,
     eta_star <- if (denom > 0) numerator / denom else NA_real_
     if (is.finite(eta_star) && eta_star >= 0) {
       curve$eta_critical[r] <- eta_star
+      curve$eta_in_range[r] <- eta_star <= 1
     }
   }
 
-  naive <- RI_naive(match, outcome, kappa = kappa, weight_type = weight_type)
+  naive <- RI_Naive(match, outcome, kappa = kappa, weight_type = weight_type)
   out <- list(
     curve = curve,
     alpha = alpha,
@@ -297,7 +345,12 @@ critical_sensitivity <- function(match,
     naive = naive$result,
     interpretation = .critical_interpretation(numerator, alpha),
     match = match,
-    outcome = outcome
+    outcome = outcome,
+    weight_type = weight_type,
+    options = list(
+      outcome = outcome, rho = rho, alpha = alpha, kappa = kappa,
+      weight_type = weight_type
+    )
   )
   class(out) <- "netmatch_critical_sensitivity"
   out
@@ -314,12 +367,12 @@ print.netmatch_critical_sensitivity <- function(x, ...) {
 #' Plot Sensitivity Results
 #'
 #' @param x A `netmatch_sensitivity` or `netmatch_critical_sensitivity` object.
-#' @param type Plot type: `"critical"` or `"pvalue"`.
+#' @param type Plot type: `"critical"` or `"pvalue"`. By default, sensitivity
+#'   grid objects use `"pvalue"` and critical objects use `"critical"`.
 #' @param alpha Test level for the reference line.
 #' @param naive Optional naive p-value or randomization-based inference result object.
-#' @param critical_ylim Optional y-axis limits for `type = "critical"`.
-#'   Defaults to an adaptive range that starts at zero. Use `c(0, 1)` to force
-#'   the full sensitivity-parameter range.
+#' @param critical_ylim Optional coordinate limits for `type = "critical"`.
+#'   Defaults to `c(0, 1)`. Values outside the visible range remain in the data.
 #' @param ... Additional arguments passed to `critical_sensitivity()` when
 #'   `x` is a grid object and `type = "critical"`.
 #' @return A `ggplot` object.
@@ -330,14 +383,14 @@ print.netmatch_critical_sensitivity <- function(x, ...) {
 #'               method = "dual", kappa = 2, solver = "auto")
 #' sens <- netmatch_sensitivity(m, "Y", eta = seq(0, 0.03, by = 0.03),
 #'                              rho = seq(0, 1, by = 0.5))
-#' plot_sensitivity(sens, type = "pvalue")
+#' plot_sensitivity(sens)
 #'
 #' crit <- critical_sensitivity(m, "Y")
-#' plot_sensitivity(crit, type = "critical")
+#' plot_sensitivity(crit)
 #' }
 #' @export
 plot_sensitivity <- function(x,
-                             type = c("critical", "pvalue"),
+                             type = NULL,
                              alpha = 0.05,
                              naive = NULL,
                              critical_ylim = NULL,
@@ -345,10 +398,17 @@ plot_sensitivity <- function(x,
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("`ggplot2` is required for sensitivity plots.", call. = FALSE)
   }
-  type <- match.arg(type)
+  if (is.null(type)) {
+    type <- if (inherits(x, "netmatch_critical_sensitivity")) "critical" else "pvalue"
+  }
+  type <- match.arg(type, c("pvalue", "critical"))
   if (type == "critical") {
     if (inherits(x, "netmatch_sensitivity")) {
-      x <- critical_sensitivity(x$match, x$outcome, alpha = alpha, kappa = x$kappa, ...)
+      stored_rho <- if (!is.null(x$options$rho)) x$options$rho else sort(unique(x$grid$rho))
+      x <- critical_sensitivity(
+        x$match, x$outcome, rho = stored_rho, alpha = alpha, kappa = x$kappa,
+        weight_type = x$weight_type, ...
+      )
     }
     if (!inherits(x, "netmatch_critical_sensitivity")) {
       stop("`type = \"critical\"` requires a critical sensitivity object or sensitivity grid.", call. = FALSE)
@@ -384,7 +444,9 @@ plot.netmatch_critical_sensitivity <- function(x, ...) {
     ggplot2::theme(panel.grid.minor = ggplot2::element_blank())
   naive_p <- .extract_naive_p(naive)
   if (is.null(naive_p) && inherits(x$match, "netmatch")) {
-    naive_p <- RI_naive(x$match, x$outcome, kappa = x$kappa)$result$p_value
+    naive_p <- RI_Naive(
+      x$match, x$outcome, kappa = x$kappa, weight_type = x$weight_type
+    )$result$p_value
   }
   if (!is.null(naive_p) && is.finite(naive_p)) {
     p <- p + ggplot2::geom_hline(yintercept = naive_p, linetype = "dashed", colour = "black", linewidth = 0.7)
@@ -397,15 +459,11 @@ plot.netmatch_critical_sensitivity <- function(x, ...) {
   if (!nrow(curve)) {
     stop("No non-negative critical eta boundary is available to plot. Check `x$interpretation`.", call. = FALSE)
   }
-  curve$eta_plot <- pmin(1, curve$eta_critical)
   if (is.null(ylim)) {
-    upper <- max(curve$eta_plot, na.rm = TRUE)
-    upper <- if (is.finite(upper) && upper > 0) upper * 1.12 else 0.05
-    upper <- min(1, upper)
-    ylim <- c(0, upper)
+    ylim <- c(0, 1)
   }
-  ggplot2::ggplot(curve, ggplot2::aes(x = rho, y = eta_plot)) +
-    ggplot2::geom_ribbon(ggplot2::aes(ymin = 0, ymax = eta_plot),
+  ggplot2::ggplot(curve, ggplot2::aes(x = rho, y = eta_critical)) +
+    ggplot2::geom_ribbon(ggplot2::aes(ymin = 0, ymax = eta_critical),
                          fill = "#D9EAF7", alpha = 0.6) +
     ggplot2::geom_line(linewidth = 0.9, colour = "#2166AC") +
     ggplot2::coord_cartesian(ylim = ylim) +
@@ -437,6 +495,19 @@ plot.netmatch_critical_sensitivity <- function(x, ...) {
   if (is.data.frame(naive) && "p_value" %in% names(naive)) return(naive$p_value[1])
   if (is.numeric(naive) && length(naive) == 1) return(naive)
   NULL
+}
+
+.validate_unit_interval <- function(x, name, scalar = FALSE) {
+  valid <- is.numeric(x) && length(x) > 0 && all(is.finite(x)) &&
+    all(x >= 0 & x <= 1)
+  if (scalar) valid <- valid && length(x) == 1
+  if (!valid) {
+    requirement <- if (scalar) "one finite number" else "finite values"
+    stop(sprintf("`%s` must %s in [0, 1].", name,
+                 if (scalar) paste("be", requirement) else paste("contain", requirement)),
+         call. = FALSE)
+  }
+  invisible(x)
 }
 
 .analysis_kappa <- function(match, kappa = NULL) {

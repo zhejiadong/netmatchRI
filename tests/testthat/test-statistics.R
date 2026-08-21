@@ -19,13 +19,13 @@ test_that("RI helpers return tidy inference output", {
     Y = c(3, 4, 5, 6, 2, 3, 4, 5)
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), A, method = "covariate")
-  fit <- RI_naive(m, "Y")
+  fit <- RI_Naive(m, "Y")
   expect_s3_class(fit, "netmatch_test")
   expect_true(all(c("statistic", "expectation", "variance", "p_value") %in% names(fit$result)))
   expect_true(is.finite(fit$result$variance))
 })
 
-test_that("RI_naive does not require set-distance construction", {
+test_that("RI_Naive does not require set-distance construction", {
   A <- matrix(0, 8, 8)
   A[cbind(1:7, 2:8)] <- 1
   A[cbind(2:8, 1:7)] <- 1
@@ -37,12 +37,12 @@ test_that("RI_naive does not require set-distance construction", {
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), A, method = "covariate")
   m$network_distance <- NULL
-  fit <- RI_naive(m, "Y")
+  fit <- RI_Naive(m, "Y")
   expect_s3_class(fit, "netmatch_test")
   expect_true(is.finite(fit$result$variance))
 })
 
-test_that("decay with eta zero equals naive variance", {
+test_that("sensitivity with eta zero equals naive variance", {
   A <- matrix(0, 8, 8)
   A[cbind(1:7, 2:8)] <- 1
   A[cbind(2:8, 1:7)] <- 1
@@ -53,12 +53,12 @@ test_that("decay with eta zero equals naive variance", {
     Y = c(3, 4, 5, 6, 2, 3, 4, 5)
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), A, method = "covariate")
-  naive <- RI_naive(m, "Y")
-  decay <- RI_decay(m, "Y", eta = 0, rho = 0)
-  expect_equal(decay$result$variance, naive$result$variance)
+  naive <- RI_Naive(m, "Y")
+  sensitivity <- RI_Sensitivity(m, "Y", eta = 0, rho = 0)
+  expect_equal(sensitivity$result$variance, naive$result$variance)
 })
 
-test_that("design equals decay with eta and rho equal to one", {
+test_that("design equals sensitivity with eta and rho equal to one", {
   A <- matrix(0, 8, 8)
   A[cbind(1:7, 2:8)] <- 1
   A[cbind(2:8, 1:7)] <- 1
@@ -69,9 +69,9 @@ test_that("design equals decay with eta and rho equal to one", {
     Y = c(3, 4, 5, 6, 2, 3, 4, 5)
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), A, method = "covariate", kappa = 2)
-  design <- RI_design(m, "Y")
-  decay <- RI_decay(m, "Y", eta = 1, rho = 1)
-  expect_equal(decay$result$variance, design$result$variance)
+  design <- RI_Design(m, "Y")
+  sensitivity <- RI_Sensitivity(m, "Y", eta = 1, rho = 1)
+  expect_equal(sensitivity$result$variance, design$result$variance)
 })
 
 test_that("design covariance truncates at kappa", {
@@ -96,7 +96,7 @@ test_that("design covariance truncates at kappa", {
   expect_equal(Sigma[2, 3], 0)
 })
 
-test_that("sensitivity grid matches repeated RI_decay calls", {
+test_that("sensitivity grid matches repeated RI_Sensitivity calls", {
   D <- matrix(4, 8, 8)
   diag(D) <- 0
   dat <- data.frame(
@@ -108,7 +108,7 @@ test_that("sensitivity grid matches repeated RI_decay calls", {
   m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "covariate", kappa = 2)
   sens <- netmatch_sensitivity(m, "Y", eta = seq(0, 0.03, by = 0.03), rho = seq(0.1, 0.5, by = 0.4))
   expected <- do.call(rbind, lapply(seq_len(nrow(sens$grid)), function(i) {
-    RI_decay(m, "Y", eta = sens$grid$eta[i], rho = sens$grid$rho[i])$result
+    RI_Sensitivity(m, "Y", eta = sens$grid$eta[i], rho = sens$grid$rho[i])$result
   }))
   rownames(expected) <- NULL
   rownames(sens$grid) <- NULL
@@ -132,7 +132,7 @@ test_that("critical sensitivity returns one curve and reaches alpha", {
   eta_star <- crit$curve$eta_critical[is.finite(crit$curve$eta_critical) & crit$curve$eta_critical > 0][1]
   rho_star <- crit$curve$rho[is.finite(crit$curve$eta_critical) & crit$curve$eta_critical > 0][1]
   if (is.finite(eta_star) && eta_star <= 1) {
-    fit <- RI_decay(m, "Y", eta = eta_star, rho = rho_star)
+    fit <- RI_Sensitivity(m, "Y", eta = eta_star, rho = rho_star)
     expect_equal(fit$result$p_value, 0.05, tolerance = 1e-6)
   }
 })
@@ -149,7 +149,7 @@ test_that("critical sensitivity does not report negative eta boundaries", {
   m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "covariate", kappa = 2)
   crit <- suppressWarnings(critical_sensitivity(m, "Y", rho = seq(0.1, 0.5, by = 0.4)))
   expect_true(all(is.na(crit$curve$eta_critical) | crit$curve$eta_critical >= 0))
-  expect_equal(names(crit$curve), c("rho", "eta_critical"))
+  expect_equal(names(crit$curve), c("rho", "eta_critical", "eta_in_range"))
 })
 
 test_that("sensitivity plots return ggplot objects", {

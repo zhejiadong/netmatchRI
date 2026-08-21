@@ -15,8 +15,8 @@ The main workflow is:
 data frame, binary treatment, covariates, and an adjacency or distance matrix.
 \item \code{\link{diagnose_match}()} summarizes covariate balance and
 within-set network distance in a matched design.
-\item \code{\link{RI_naive}()}, \code{\link{RI_decay}()}, and
-\code{\link{RI_design}()} run randomization-based inference for a matched
+\item \code{\link{RI_Naive}()}, \code{\link{RI_Sensitivity}()}, and
+\code{\link{RI_Design}()} run randomization-based inference for a matched
 design, including sensitivity analysis and design-based approaches.
 \item \code{\link{netmatch_sensitivity}()} evaluates the
 randomization-based inference result over a grid of residual network-dependence

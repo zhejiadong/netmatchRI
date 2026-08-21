@@ -8,39 +8,21 @@ critical_sensitivity(match, outcome, rho = seq(0, 1, by = 0.01),
 \arguments{
 \item{match}{A \code{netmatch} object, ideally from \code{method = "dual"}.}
 \item{outcome}{Name of the outcome column.}
-\item{rho}{Numeric vector of rho values.}
+\item{rho}{Finite numeric values from 0 to 1. Rho controls how residual covariance changes with network distance.}
 \item{alpha}{Test level.}
 \item{kappa}{Analysis cutoff. Defaults to \code{match$kappa}.}
-\item{weight_type}{Weighting scheme for matched-set U-statistics.}
+\item{weight_type}{Matched-set weighting. \code{"ns"} uses \eqn{1/(n_s+1)}. \code{"ntc"} uses \eqn{1/(n_{ts}n_{cs})}.}
 }
 \value{
-A \code{netmatch_critical_sensitivity} object, which is a list with:
-\itemize{
-\item \code{curve}: data frame with \code{rho} and \code{eta_critical}.
-\item \code{alpha}: test level.
-\item \code{kappa}: analysis cutoff.
-\item \code{statistic}: observed weighted statistic.
-\item \code{expectation}: null expectation.
-\item \code{diagonal_variance}: independence variance component.
-\item \code{naive}: naive randomization-inference result.
-\item \code{interpretation}: text summary of the critical curve.
-\item \code{match}: original \code{netmatch} object.
-\item \code{outcome}: outcome column name.
-}
+A \code{netmatch_critical_sensitivity} object. Its \code{curve} contains \code{rho}, the unmodified \code{eta_critical}, and \code{eta_in_range}, which says whether the critical eta is in the sensitivity range from 0 to 1. The object also stores alpha, cutoff, statistic, null expectation, diagonal variance, naive result, interpretation, original match, and all analysis-defining options.
 }
 \description{
-Computes the critical value of eta as a function of rho that solves
-\code{p(eta, rho) = alpha} for the sensitivity analysis.
+Computes the critical eta at each rho where the two-sided normal-approximation p-value equals \code{alpha}.
 }
 \details{
-The curve is intended as the robustness display for the dual-penalty design.
-For each rho value, eta values below the critical curve
-retain rejection at level \code{alpha}; values above the curve allow enough
-residual network dependence to explain away the result.
+For matched sets at distance \eqn{d}, residual covariance is multiplied by \eqn{\eta\rho^{d-1}}. Eta values below the critical curve retain rejection at level \code{alpha}; values above it allow enough residual dependence to explain away the result.
 
-If the independence/naive variance is already not significant at
-\code{alpha}, there is no positive critical eta and \code{eta_critical} is
-\code{NA}.
+Critical eta values above 1 are kept in \code{eta_critical} and marked \code{FALSE} in \code{eta_in_range}. If the naive analysis is already not significant, there is no positive critical eta and \code{eta_critical} is \code{NA}.
 }
 \examples{
 \dontrun{

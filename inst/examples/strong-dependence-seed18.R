@@ -31,12 +31,12 @@ print(m_cov)
 print(m_single)
 print(m_dual)
 
-fit_naive <- netmatch_test(m_dual, "Y", method = "naive")
-fit_decay <- netmatch_test(m_dual, "Y", method = "decay", eta = 0.03, rho = 0.10)
-fit_design <- netmatch_test(m_dual, "Y", method = "design")
+fit_naive <- RI_Naive(m_dual, "Y")
+fit_sensitivity <- RI_Sensitivity(m_dual, "Y", eta = 0.03, rho = 0.10)
+fit_design <- RI_Design(m_dual, "Y")
 
 print(fit_naive)
-print(fit_decay)
+print(fit_sensitivity)
 print(fit_design)
 
 sens <- netmatch_sensitivity(
@@ -48,8 +48,8 @@ sens <- netmatch_sensitivity(
 crit <- critical_sensitivity(m_dual, "Y")
 
 if (requireNamespace("ggplot2", quietly = TRUE)) {
-  print(plot_sensitivity(sens, type = "pvalue"))
-  print(plot_sensitivity(crit, type = "critical"))
+  print(plot_sensitivity(sens))
+  print(plot_sensitivity(crit))
 }
 
-cat("Objects available: sim, sim_dat, Adj, net_dist, V, m_cov, m_single, m_dual, fit_naive, fit_decay, fit_design, sens, crit.\n")
+cat("Objects available: sim, sim_dat, Adj, net_dist, V, m_cov, m_single, m_dual, fit_naive, fit_sensitivity, fit_design, sens, crit.\n")

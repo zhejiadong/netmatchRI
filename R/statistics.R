@@ -131,7 +131,7 @@
   pair_idx <- which(upper.tri(bound) & bound != 0, arr.ind = TRUE)
   if (!nrow(pair_idx)) return(diag_var)
   off_diag <- 2 * weights[pair_idx[, 1]] * weights[pair_idx[, 2]] * bound[pair_idx]
-  if (method == "decay") {
+  if (method == "sensitivity") {
     set_dist <- components$set_dist[pair_idx]
     off_diag <- off_diag * eta * rho^(set_dist - 1)
   }

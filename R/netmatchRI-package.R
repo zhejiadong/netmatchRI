@@ -10,7 +10,7 @@
 #'   binary treatment, covariates, and an adjacency or distance matrix.
 #' * `diagnose_match()` summarizes covariate balance and within-set network
 #'   distance in a matched design.
-#' * `RI_naive()`, `RI_decay()`, and `RI_design()` run randomization-based
+#' * `RI_Naive()`, `RI_Sensitivity()`, and `RI_Design()` run randomization-based
 #'   inference for a matched design, including sensitivity analysis and
 #'   design-based approaches.
 #' * `netmatch_sensitivity()` evaluates the randomization-based inference result
@@ -33,4 +33,4 @@
 #'
 "_PACKAGE"
 
-utils::globalVariables(c("eta_label", "eta_plot", "p_value", "rho"))
+utils::globalVariables(c("eta_critical", "eta_label", "p_value", "rho"))
