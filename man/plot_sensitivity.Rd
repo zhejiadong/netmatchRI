@@ -25,7 +25,7 @@ Plots a p-value grid or a critical sensitivity curve. Stored analysis choices, i
 sim <- simulate_netmatch_example()
 m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
               method = "dual", kappa = 2, solver = "auto")
-sens <- netmatch_sensitivity(m, "Y", eta = c(0, 0.03), rho = seq(0, 1, by = 0.5))
+sens <- sensitivity_grid(m, "Y", eta = c(0, 0.03), rho = seq(0, 1, by = 0.5))
 plot_sensitivity(sens)
 
 crit <- critical_sensitivity(m, "Y")

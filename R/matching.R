@@ -1,6 +1,6 @@
 #' Build a Dual-Penalty Matched Design
 #'
-#' `netmatch()` builds the proposed dual-penalty matched design via a mixed-
+#' `netmatch()` builds a dual-penalty matched design via a mixed-
 #' integer program. The covariate-only and single-penalty comparison designs
 #' use `optmatch::fullmatch()`. The cutoff is a direct graph-distance
 #' threshold: `kappa = 2` means network-distance pairs less than or equal to 2
@@ -32,12 +32,12 @@
 #' @param network_type Interpretation of `network`: `"adjacency"`,
 #'   `"distance"`, or `"auto"`. An explicit choice overrides automatic
 #'   detection. Infinite values are allowed only for distance matrices.
-#' @param include_solver If `TRUE`, retain the backend's raw result in
+#' @param include_solver If `TRUE`, retain the complete backend result in
 #'   `solver_result`. The default keeps only stable `solver_info`.
 #' @return A `netmatch` object containing matched `data`, full-length
 #'   `subclass`, `weights`, and `matched` vectors, the original call and data,
 #'   the estimand and resolved network type, the unit-level network-distance
-#'   matrix, and stable solver information. Raw solver output is included only
+#'   matrix, and stable solver information. Complete backend output is included only
 #'   when `include_solver = TRUE`.
 #' @details `solver`, `caliper`, `timelimit`, `mipgap`, and `threads` are used
 #'   only by `method = "dual"`; comparison methods use

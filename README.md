@@ -1,19 +1,11 @@
 # netmatchRI
 
-`netmatchRI` implements dual-penalty matching and randomization-based inference
-for observational network data with network dependence and interference. The
-dual-penalty matching method incorporates network proximity across treatment
-arms and among units assigned to the same matched sets. The package provides
-randomization-based inference that accounts for residual network dependence
-across matched sets, sensitivity analysis of inferential conclusions across
-dependence parameters, and critical curves that show how much residual network
-dependence would make a result no longer statistically significant.
-It also includes covariate-only and single-penalty comparison designs and
-diagnostic summaries of the matching design.
+`netmatchRI` provides matching and randomization-based inference for observational
+network data. It supports dual-penalty matching, comparison designs, balance and
+network diagnostics, inference under residual network dependence, and
+sensitivity analysis.
 
 ## Installation
-
-Install the package directly from GitHub:
 
 ```r
 install.packages("remotes")
@@ -21,129 +13,52 @@ remotes::install_github("zhejiadong/netmatchRI")
 library(netmatchRI)
 ```
 
-The package installs its required R dependencies automatically.
-
-## Solver recommendation
-
-The default `solver = "highs"` uses the open-source HiGHS backend. We selected
-HiGHS as the preferred open-source default based on package-local benchmarks
-for the current dual-penalty formulation at N = 300--500; this is not a claim
-that HiGHS is universally the fastest solver. HiGHS is a required dependency
-and is installed automatically with `netmatchRI`.
-
-For explicit licensed-solver preference, `solver = "auto"` tries Gurobi first,
-then HiGHS, then the open-source GLPK fallback. You can request any backend with
-`solver = "gurobi"`, `solver = "highs"`, or `solver = "glpk"`. Gurobi requires
-its optimizer, license, and R package; GLPK uses `{Rglpk}` and `{slam}`.
-
-### Optional Gurobi backend
-
-Gurobi is optional. The default `solver = "highs"` does not require Gurobi.
-To use `solver = "gurobi"`:
-
-1. Eligible academic users can request a free academic license at
-   <https://www.gurobi.com/academics/>. Other users can review the available
-   license options at the Gurobi download center.
-2. Download and install Gurobi Optimizer from
-   <https://www.gurobi.com/product/download-center>.
-3. Activate the license using the instructions in the Gurobi User Portal. For
-   an Academic Named-User License, this normally involves running the
-   `grbgetkey` command shown on the license detail page.
-4. Install the `gurobi` R package included in the `<installdir>/R` directory of
-   the Gurobi installation:
-
-   ```r
-   install.packages("<path-to-gurobi-R-package>", repos = NULL)
-   ```
-
-   Platform-specific instructions are available in the
-   [official Gurobi R installation guide](https://docs.gurobi.com/projects/optimizer/en/current/reference/r/setup.html).
-5. Verify the installation and request the Gurobi backend in `netmatchRI`:
-
-   ```r
-   library(gurobi)
-   sim <- simulate_netmatch_example()
-
-   m_dual_gurobi <- netmatch(
-     data = sim$data,
-     treat = "Z",
-     covariates = c("X1", "X2", "X3"),
-     network = sim$net_dist,
-     method = "dual",
-     kappa = 2,
-     solver = "gurobi"
-   )
-   ```
-
-The defaults are `timelimit = 90` seconds and `mipgap = 0.01`. In package-local
-N = 500 runs, HiGHS may stop at the time limit with a feasible incumbent rather
-than a proven optimum. `netmatch()` accepts such a result only after independent
-bounds, integrality, constraint, and objective validation, and warns with the
-actual status and available relative gap.
-
 ## Basic workflow
 
 ```r
-sim <- simulate_netmatch_example()
+sim <- simulate_netmatch_example(seed = 20260821, n = 32)
 
-m_dual <- netmatch(
+m <- netmatch(
   data = sim$data,
   treat = "Z",
   covariates = c("X1", "X2", "X3"),
   network = sim$net_dist,
   method = "dual",
-  kappa = 2,
-  solver = "highs"
+  kappa = 2
 )
 
-diagnostics <- diagnose_match(m_dual)
-diagnostics$covariate_balance
-diagnostics$network_summary
+summary(m)
+diag <- diagnose_match(m)
+diag$covariate_balance
+diag$network_summary
 
-ri_naive <- RI_Naive(m_dual, "Y")
-ri_sensitivity <- RI_Sensitivity(m_dual, "Y", eta = 0.03, rho = 0.10)
-ri_design <- RI_Design(m_dual, "Y")
+ri <- RI_Sensitivity(m, "Y", eta = 0.03, rho = 0.10)
+ri$result
 
-sens <- netmatch_sensitivity(
-  m_dual,
-  "Y",
-  eta = seq(0, 0.03, by = 0.01),
-  rho = seq(0, 1, by = 0.1)
+grid <- sensitivity_grid(
+  m, "Y",
+  eta = c(0, 0.03),
+  rho = seq(0, 1, by = 0.25)
 )
-
-crit <- critical_sensitivity(m_dual, "Y")
-
-plot_sensitivity(sens)
-plot_sensitivity(crit)
+grid$grid
+plot_sensitivity(grid)
 ```
 
-For your own study, supply one row per unit, a binary treatment indicator such
-as `Z`, observed covariates such as `X1`, `X2`, `X3`, an outcome column such as
-`Y`, and a network distance or adjacency representation compatible with
-`netmatch()`.
+The default dual-design solver is the open-source HiGHS backend. Set
+`solver = "auto"` to try Gurobi, HiGHS, and GLPK in that order, or select a
+backend explicitly. Gurobi requires a separate optimizer, license, and R package;
+see the [official installation guide](https://docs.gurobi.com/projects/optimizer/en/current/reference/r/setup.html).
 
 ## Main functions
 
-- `netmatch()` builds a matched design under the selected matching method.
-- `diagnose_match()` summarizes covariate balance and within-set network
-  distances.
-- `RI_Naive()`, `RI_Sensitivity()`, and `RI_Design()` run randomization-based inference
-  for matched designs, including sensitivity analysis and design-based approaches.
-- `netmatch_sensitivity()` evaluates p-values over an `(eta, rho)` grid.
-- `critical_sensitivity()` computes the critical sensitivity curve.
-- `plot_sensitivity()` plots sensitivity results.
-- `simulate_netmatch_example()` provides a 300-unit example dataset.
+- `netmatch()` constructs dual-penalty, single-penalty, or covariate-only matched designs.
+- `matched_data()`, `summary()`, and `diagnose_match()` inspect a matched design.
+- `RI_Naive()`, `RI_Sensitivity()`, and `RI_Design()` perform randomization-based inference.
+- `sensitivity_grid()` and `critical_sensitivity()` evaluate sensitivity to residual network dependence.
+- `plot_sensitivity()` plots sensitivity grids and critical curves.
+- `simulate_netmatch_example()` generates example network data.
 
-## Additional documentation
+## Citation and support
 
-The package vignette `vignettes/netmatchRI.Rmd` gives a longer walkthrough of
-simulation, dual-penalty matching, randomization-based inference, and
-sensitivity analysis for observational network data.
-
-## Citation
-
-If you use this repository or the accompanying methods in your work, please
-cite:
-
-Dong Z, Lee Y (2026). "Design and Analysis for Valid Causal Inference with
-Network-Dependent Data." Manuscript in preparation.
+Use `citation("netmatchRI")` for the installed citation. To report a problem or
+request a feature, open an issue at <https://github.com/zhejiadong/netmatchRI/issues>.

@@ -15,6 +15,10 @@ test_that("the public RI API uses only the canonical names", {
   expect_setequal(grep("^RI_", exports, value = TRUE),
                   c("RI_Naive", "RI_Sensitivity", "RI_Design"))
   expect_false(any(c("RI_naive", "RI_decay", "RI_design", "netmatch_test") %in% exports))
+  expect_true("sensitivity_grid" %in% exports)
+  expect_false("netmatch_sensitivity" %in% exports)
+  expect_false(exists("netmatch_sensitivity", envir = asNamespace("netmatchRI"),
+                      inherits = FALSE))
 })
 
 test_that("canonical RI functions label sensitivity results consistently", {
@@ -33,14 +37,14 @@ test_that("eta and rho scalar inputs have direct unit-interval errors", {
 
 test_that("eta and rho grid inputs have direct unit-interval errors", {
   m <- ri_api_fixture()
-  expect_error(netmatch_sensitivity(m, "Y", eta = c(0, NA_real_)), "`eta` must contain finite values in [0, 1]", fixed = TRUE)
-  expect_error(netmatch_sensitivity(m, "Y", rho = c(0, 1.1)), "`rho` must contain finite values in [0, 1]", fixed = TRUE)
+  expect_error(sensitivity_grid(m, "Y", eta = c(0, NA_real_)), "`eta` must contain finite values in [0, 1]", fixed = TRUE)
+  expect_error(sensitivity_grid(m, "Y", rho = c(0, 1.1)), "`rho` must contain finite values in [0, 1]", fixed = TRUE)
   expect_error(critical_sensitivity(m, "Y", rho = numeric()), "`rho` must contain finite values in [0, 1]", fixed = TRUE)
 })
 
 test_that("sensitivity objects retain analysis-defining options", {
   m <- ri_api_fixture()
-  sens <- netmatch_sensitivity(m, "Y", eta = c(0, 0.2), rho = c(0.1, 0.4), kappa = 1, weight_type = "ntc")
+  sens <- sensitivity_grid(m, "Y", eta = c(0, 0.2), rho = c(0.1, 0.4), kappa = 1, weight_type = "ntc")
   expect_equal(sens$weight_type, "ntc")
   expect_equal(sens$options, list(outcome = "Y", eta = c(0, 0.2), rho = c(0.1, 0.4), kappa = 1, weight_type = "ntc"))
 
@@ -52,7 +56,7 @@ test_that("sensitivity objects retain analysis-defining options", {
 test_that("sensitivity plot defaults agree and reuse stored weighting", {
   skip_if_not_installed("ggplot2")
   m <- ri_api_fixture()
-  sens <- netmatch_sensitivity(m, "Y", eta = c(0, 0.2), rho = c(0.1, 0.4), weight_type = "ntc")
+  sens <- sensitivity_grid(m, "Y", eta = c(0, 0.2), rho = c(0.1, 0.4), weight_type = "ntc")
   p1 <- plot(sens)
   p2 <- plot_sensitivity(sens)
   expect_false("..." %in% names(formals(plot_sensitivity)))

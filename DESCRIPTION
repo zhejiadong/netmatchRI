@@ -10,8 +10,8 @@ Description: Implements dual-penalty matching and randomization-based inference
     The dual-penalty matched design incorporates network proximity across
     treatment arms and among units assigned to the same matched sets. It also
     includes comparison matching designs, design-based variance bounds,
-    sensitivity analysis, critical sensitivity curves, and a built-in 300-unit
-    example dataset. An optional interface to the commercial 'Gurobi Optimizer'
+    sensitivity analysis, critical sensitivity curves, and a generator for
+    example network data. An optional interface to the commercial 'Gurobi Optimizer'
     is available. Eligible academic users can request a free license at
     <https://www.gurobi.com/academics/>. The optimizer can be downloaded from
     <https://www.gurobi.com/product/download-center>. The associated 'gurobi'

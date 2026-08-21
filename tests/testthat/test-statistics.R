@@ -106,7 +106,7 @@ test_that("sensitivity grid matches repeated RI_Sensitivity calls", {
     Y = c(8, 7, 6, 5, 1, 2, 3, 4)
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "covariate", kappa = 2)
-  sens <- netmatch_sensitivity(m, "Y", eta = seq(0, 0.03, by = 0.03), rho = seq(0.1, 0.5, by = 0.4))
+  sens <- sensitivity_grid(m, "Y", eta = seq(0, 0.03, by = 0.03), rho = seq(0.1, 0.5, by = 0.4))
   expected <- do.call(rbind, lapply(seq_len(nrow(sens$grid)), function(i) {
     RI_Sensitivity(m, "Y", eta = sens$grid$eta[i], rho = sens$grid$rho[i])$result
   }))
@@ -164,7 +164,7 @@ test_that("sensitivity plots return ggplot objects", {
     Y = c(8, 7, 6, 5, 1, 2, 3, 4)
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), A, method = "covariate", kappa = 2)
-  sens <- netmatch_sensitivity(m, "Y", eta = seq(0, 0.1, by = 0.1), rho = seq(0.1, 0.5, by = 0.4))
+  sens <- sensitivity_grid(m, "Y", eta = seq(0, 0.1, by = 0.1), rho = seq(0.1, 0.5, by = 0.4))
   crit <- suppressWarnings(critical_sensitivity(m, "Y", rho = seq(0.1, 0.5, by = 0.4)))
   p_pvalue <- plot_sensitivity(sens, type = "pvalue")
   p_critical <- plot_sensitivity(crit, type = "critical")

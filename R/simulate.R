@@ -1,21 +1,26 @@
-#' Simulate the 300-Unit Network-Matching Example
+#' Generate Example Network Data
 #'
-#' Generates one data set from the built-in simulation design: a fixed
-#' stochastic block network, network-dependent covariates, treatment, and
-#' outcome. The default values reproduce the package illustration.
+#' Generates a stochastic block network and a data frame with three covariates,
+#' a binary treatment, and an outcome. Covariates, treatment, and outcome may
+#' be correlated across connected units.
 #'
 #' @param seed Random seed for the simulation.
 #' @param beta_z Treatment effect in the outcome model.
-#' @param n Number of units. The built-in example uses 300.
-#' @param alpha1 Dependence strength in `[0, 1]`; larger values induce stronger
-#'   network dependence.
-#' @param alpha2 Individual variation in `[0, 1]` independent of the network.
+#' @param n Number of units. Must be divisible by four.
+#' @param alpha1 Network-related contribution to the covariance structure, from
+#'   0 to 1.
+#' @param alpha2 Unit-specific contribution to the covariance structure, from
+#'   0 to 1.
 #' @param pin Within-block edge probability for the stochastic block network.
 #' @param pout Between-block edge probability for the stochastic block network.
-#' @return A list with the simulated `data`, `Adj` (an `n` by `n` adjacency
-#'   matrix for the fixed network), graph-distance matrix `net_dist`, `V`
-#'   (variance-covariance matrix), simulation `seed`, `beta_z`, `alpha1`,
+#' @return A list with the generated `data`, adjacency matrix `Adj`,
+#'   graph-distance matrix `net_dist`, covariance matrix `V`, simulation
+#'   `seed`, `beta_z`, `alpha1`,
 #'   `alpha2`, `pin`, and `pout`.
+#' @examples
+#' sim <- simulate_netmatch_example(seed = 123, n = 32)
+#' dim(sim$data)
+#' table(sim$data$Z)
 #' @export
 simulate_netmatch_example <- function(seed = 90141,
                                       beta_z = 0,

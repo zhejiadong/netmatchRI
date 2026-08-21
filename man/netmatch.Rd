@@ -32,13 +32,13 @@ netmatch(data, treat, covariates, network,
 \item{threads}{Number of Gurobi or HiGHS threads.}
 \item{estimand}{Target estimand used for unit matching weights: \code{"ATT"}, \code{"ATC"}, or \code{"ATE"}. Nonzero weights are normalized within each treatment group to have mean 1.}
 \item{network_type}{Interpretation of \code{network}: \code{"auto"}, \code{"adjacency"}, or \code{"distance"}. An explicit choice overrides automatic detection. Infinite values are allowed only for distance matrices.}
-\item{include_solver}{If \code{TRUE}, retain the raw backend result in \code{solver_result}. The default retains only stable \code{solver_info}.}
+\item{include_solver}{If \code{TRUE}, retain the complete backend result in \code{solver_result}. The default retains only stable \code{solver_info}.}
 \item{object}{A \code{netmatch} object.}
 \item{x}{A \code{netmatch} object.}
 \item{...}{Unused.}
 }
 \value{
-For \code{netmatch()}, a \code{netmatch} object containing matched \code{data}; full-length \code{subclass}, \code{weights}, and \code{matched} vectors; the original \code{call} and \code{original_data}; \code{estimand}; resolved \code{network_type}; \code{network_distance}; and stable \code{solver_info}. The raw \code{solver_result} is present only when \code{include_solver = TRUE}.
+For \code{netmatch()}, a \code{netmatch} object containing matched \code{data}; full-length \code{subclass}, \code{weights}, and \code{matched} vectors; the original \code{call} and \code{original_data}; \code{estimand}; resolved \code{network_type}; \code{network_distance}; and stable \code{solver_info}. The complete \code{solver_result} is present only when \code{include_solver = TRUE}.
 
 For \code{summary.netmatch()}, a \code{netmatch_summary} object with sample counts, effective sample sizes, matched-set sizes, covariate balance, network summary, and solver information.
 

@@ -187,7 +187,7 @@ print.netmatch_test <- function(x, ...) {
 #' sim <- simulate_netmatch_example()
 #' m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
 #'               method = "dual", kappa = 2, solver = "auto")
-#' sens <- netmatch_sensitivity(
+#' sens <- sensitivity_grid(
 #'   m,
 #'   "Y",
 #'   eta = seq(0, 0.03, by = 0.01),
@@ -196,12 +196,12 @@ print.netmatch_test <- function(x, ...) {
 #' sens$grid
 #' }
 #' @export
-netmatch_sensitivity <- function(match,
-                                 outcome,
-                                 eta = seq(0, 0.10, by = 0.01),
-                                 rho = seq(0, 0.50, by = 0.05),
-                                 kappa = NULL,
-                                 weight_type = c("ns", "ntc")) {
+sensitivity_grid <- function(match,
+                             outcome,
+                             eta = seq(0, 0.10, by = 0.01),
+                             rho = seq(0, 0.50, by = 0.05),
+                             kappa = NULL,
+                             weight_type = c("ns", "ntc")) {
   if (!inherits(match, "netmatch")) {
     stop("`match` must be a netmatch object.", call. = FALSE)
   }
@@ -259,7 +259,7 @@ print.netmatch_sensitivity <- function(x, ...) {
 #' Computes the critical value of eta as a function of rho that solves
 #' `p(eta, rho) = alpha` for the two-sided normal-approximation analysis.
 #'
-#' @param match A `netmatch` object, ideally from `method = "dual"`.
+#' @param match A `netmatch` object from `method = "dual"`.
 #' @param outcome Name of a numeric outcome column with finite, non-missing
 #'   values for all matched units.
 #' @param rho Finite numeric values from 0 to 1. For matched sets at distance
@@ -382,8 +382,8 @@ print.netmatch_critical_sensitivity <- function(x, ...) {
 #' sim <- simulate_netmatch_example()
 #' m <- netmatch(sim$data, "Z", c("X1", "X2", "X3"), sim$net_dist,
 #'               method = "dual", kappa = 2, solver = "auto")
-#' sens <- netmatch_sensitivity(m, "Y", eta = seq(0, 0.03, by = 0.03),
-#'                              rho = seq(0, 1, by = 0.5))
+#' sens <- sensitivity_grid(m, "Y", eta = seq(0, 0.03, by = 0.03),
+#'                          rho = seq(0, 1, by = 0.5))
 #' plot_sensitivity(sens)
 #'
 #' crit <- critical_sensitivity(m, "Y")

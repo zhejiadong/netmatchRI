@@ -4,37 +4,23 @@
 \alias{netmatchRI-package}
 \title{netmatchRI: Dual-Penalty Matching and Randomization-Based Inference}
 \description{
-\pkg{netmatchRI} implements dual-penalty matching and randomization-based
-inference for observational network data with network dependence and
-interference.
+\pkg{netmatchRI} provides matching and randomization-based inference for
+observational network data with network dependence and interference.
 }
 \details{
-The main workflow is:
-\itemize{
-\item \code{\link{netmatch}()} builds the dual-penalty matched design from a
-data frame, binary treatment, covariates, and an adjacency or distance matrix.
-\item \code{\link{diagnose_match}()} summarizes covariate balance and
-within-set network distance in a matched design.
-\item \code{\link{RI_Naive}()}, \code{\link{RI_Sensitivity}()}, and
-\code{\link{RI_Design}()} run randomization-based inference for a matched
-design, including sensitivity analysis and design-based approaches.
-\item \code{\link{netmatch_sensitivity}()} evaluates the
-randomization-based inference result over a grid of residual network-dependence
-parameters.
-\item \code{\link{critical_sensitivity}()} computes the critical eta curve
-for the dual-penalty design.
-\item \code{\link{plot_sensitivity}()} plots p-value grids or the critical
-curve.
-\item \code{\link{simulate_netmatch_example}()} generates one 300-unit example dataset for examples and workflow checks.
-}
+Use \code{\link{netmatch}()} to construct a dual-penalty, single-penalty, or
+covariate-only matched design. Inspect the result with \code{summary()},
+\code{\link{matched_data}()}, and \code{\link{diagnose_match}()}. Use
+\code{\link{RI_Naive}()}, \code{\link{RI_Sensitivity}()}, or
+\code{\link{RI_Design}()} for inference, and use
+\code{\link{sensitivity_grid}()}, \code{\link{critical_sensitivity}()}, and
+\code{\link{plot_sensitivity}()} to examine sensitivity to residual network
+dependence.
 
-The dual-penalty matching backend defaults to open-source HiGHS. This choice is
-based on package-local benchmarks at N = 300--500 and is not a claim that HiGHS
-is universally fastest. \code{solver = "auto"} tries Gurobi, HiGHS, then GLPK;
-either licensed Gurobi or open-source GLPK can also be requested explicitly. At
-N = 500, HiGHS may return a validated time-limited incumbent, in which case
-\code{netmatch()} issues a warning with the reported gap. After installation, use
-\code{library(netmatchRI)},
-\code{ls("package:netmatchRI")}, \code{help(package = "netmatchRI")},
-\code{?netmatchRI}, and \code{?netmatch} to inspect the package.
+Dual-penalty matching uses the open-source HiGHS solver by default. The
+\code{solver} argument can select HiGHS, Gurobi, or GLPK;
+\code{solver = "auto"} tries them in that order of availability.
+
+\code{\link{simulate_netmatch_example}()} generates example data for learning
+the workflow.
 }

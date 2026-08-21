@@ -6,7 +6,7 @@ critical_sensitivity(match, outcome, rho = seq(0, 1, by = 0.01),
   alpha = 0.05, kappa = NULL, weight_type = c("ns", "ntc"))
 }
 \arguments{
-\item{match}{A \code{netmatch} object, ideally from \code{method = "dual"}.}
+\item{match}{A \code{netmatch} object from \code{method = "dual"}.}
 \item{outcome}{Name of a numeric outcome column with finite, non-missing values for all matched units.}
 \item{rho}{Finite numeric values from 0 to 1. Rho controls how residual covariance changes with network distance.}
 \item{alpha}{Test level.}
