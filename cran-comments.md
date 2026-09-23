@@ -63,7 +63,9 @@ examples, tests, vignettes, and PDF/HTML manuals all passed on both versions:
 - R-release: <https://win-builder.r-project.org/Wr4092MLmkrN/00check.log>
 - R-devel: <https://win-builder.r-project.org/3772CIG7aYDM/00check.log>
 
-No CRAN upload or release tag has been made.
+The package was uploaded through the CRAN submission form and the maintainer
+confirmation step was completed on 2026-09-23. The submission is awaiting
+CRAN's automated pretest/manual review. No release tag has been made.
 
 This file is excluded from the source tarball; it records evidence for the
 submission form without changing the checked payload.
