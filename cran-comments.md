@@ -43,9 +43,9 @@ SHA-256: `fdd7c9123496ad1c7612014dc5b50d0690d69f8dfd1478a461ed7dfda7e639f1`.
   at rho = 1 and critical ratio 0.3468691726339535.
 - All package URLs passed `urlchecker::url_check()`.
 - GitHub Actions passed at commit
-  `9b09068f0a31a30eb1e3b47f501eae7cfe91d0f4` on Windows R-release, macOS
+  `3debdda308ad8a3734f489473ab11cad5d90d679` on Windows R-release, macOS
   R-release, Ubuntu R-devel, Ubuntu R-release, and Ubuntu R-oldrel-1:
-  <https://github.com/zhejiadong/netmatchRI/actions/runs/35810654468>.
+  <https://github.com/zhejiadong/netmatchRI/actions/runs/35813166652>.
 
 ## NOTE explanation
 
@@ -56,10 +56,14 @@ or use the default HiGHS workflow.
 
 ## External checks / submission state
 
-The exact 69,887-byte archive was uploaded to win-builder R-release and R-devel.
-The upload receipts recorded the exact filename and byte size; the completed
-win-builder result emails and `00check.log` files are pending. No CRAN upload or
-release tag has been made.
+The exact 69,887-byte archive passed win-builder R-release and R-devel with
+0 errors, 0 warnings, and the same expected NOTE described above. Installation,
+examples, tests, vignettes, and PDF/HTML manuals all passed on both versions:
+
+- R-release: <https://win-builder.r-project.org/Wr4092MLmkrN/00check.log>
+- R-devel: <https://win-builder.r-project.org/3772CIG7aYDM/00check.log>
+
+No CRAN upload or release tag has been made.
 
 This file is excluded from the source tarball; it records evidence for the
 submission form without changing the checked payload.
