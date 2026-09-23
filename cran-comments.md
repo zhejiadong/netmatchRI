@@ -1,3 +1,17 @@
+This is a resubmission.
+
+## Response to the previous CRAN review
+
+The previous review asked us to declare where the optional, non-CRAN `gurobi`
+package can be obtained. The package now:
+
+- states in `DESCRIPTION` that eligible academic users can request a Gurobi
+  license, links to the optimizer download page, and links to the official R
+  interface installation instructions;
+- gives the corresponding optional-backend setup steps in `README.md`;
+- keeps the CRAN package `highs` as the required open-source default, with all
+  Gurobi use conditional.
+
 ## Revision summary
 
 The package provides network-constrained matching and randomization-based
@@ -11,17 +25,27 @@ matching/caliper behavior are unchanged.
 
 Windows 11 x64; R 4.5.0.
 
-Exact artifact: `netmatchRI_0.1.0.tar.gz` (70,359 bytes).
-SHA-256: `349f2e1294fdad5d2825da585ed9314d42df91879450244f862c2309fd87c048`.
+Exact artifact: `netmatchRI_0.1.0.tar.gz` (69,887 bytes).
+SHA-256: `fdd7c9123496ad1c7612014dc5b50d0690d69f8dfd1478a461ed7dfda7e639f1`.
 
-- 1,117 source test assertions across 72 test blocks passed; no test failures,
+- 1,117 source test assertions across 72 test blocks passed; no failures,
   errors, warnings, or skips.
+- Ordinary `R CMD check` on the exact source archive completed with 0 errors,
+  0 warnings, and 0 notes.
 - `R CMD check --as-cran` on the exact source archive completed with 0 errors,
-  0 warnings, and 1 NOTE.
+  0 warnings, and 1 NOTE. Its installed test run had 1,112 passing assertions
+  and 2 expected skips because optional Gurobi was unavailable.
 - The exact archive built the PDF and HTML manuals, rebuilt the vignette, and
-  ran all examples and tests successfully.
+  ran all examples successfully.
 - The exact archive installed in an isolated library; its installed citation,
-  package metadata, and default HiGHS workflow were verified.
+  package metadata, and default HiGHS workflow were verified. The smoke test
+  matched 60 units in 13 sets and reproduced critical eta 0.3702144390796152
+  at rho = 1 and critical ratio 0.3468691726339535.
+- All package URLs passed `urlchecker::url_check()`.
+- GitHub Actions passed at commit
+  `9b09068f0a31a30eb1e3b47f501eae7cfe91d0f4` on Windows R-release, macOS
+  R-release, Ubuntu R-devel, Ubuntu R-release, and Ubuntu R-oldrel-1:
+  <https://github.com/zhejiadong/netmatchRI/actions/runs/35810654468>.
 
 ## NOTE explanation
 
@@ -32,9 +56,10 @@ or use the default HiGHS workflow.
 
 ## External checks / submission state
 
-No CRAN upload, Git push, release tag, or current-artifact remote-platform
-check has been made. The public GitHub repository should be aligned with this
-release candidate before submission because the package Description links to it.
+The exact 69,887-byte archive was uploaded to win-builder R-release and R-devel.
+The upload receipts recorded the exact filename and byte size; the completed
+win-builder result emails and `00check.log` files are pending. No CRAN upload or
+release tag has been made.
 
 This file is excluded from the source tarball; it records evidence for the
 submission form without changing the checked payload.
