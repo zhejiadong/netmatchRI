@@ -56,19 +56,19 @@ test_that("solver resolution priority is independent of installed solvers", {
     .glpk_available = function() TRUE,
     .package = "netmatchRI"
   )
-  expect_equal(netmatchRI:::.resolve_solver("auto"), "gurobi")
+  expect_equal(netmatchRI:::.resolve_solver("auto"), "highs")
   expect_equal(
     netmatchRI:::.resolve_solver_candidates("auto"),
-    c("gurobi", "highs", "glpk")
+    c("highs", "gurobi", "glpk")
   )
 
   local_mocked_bindings(
-    .gurobi_available = function() FALSE,
-    .highs_available = function() TRUE,
+    .gurobi_available = function() TRUE,
+    .highs_available = function() FALSE,
     .glpk_available = function() TRUE,
     .package = "netmatchRI"
   )
-  expect_equal(netmatchRI:::.resolve_solver("auto"), "highs")
+  expect_equal(netmatchRI:::.resolve_solver("auto"), "gurobi")
 
   local_mocked_bindings(
     .gurobi_available = function() FALSE,
@@ -84,6 +84,7 @@ test_that("auto retries the next available backend after a runtime failure", {
   fake_match_once <- function(data, ..., solver) {
     attempts <<- c(attempts, solver)
     if (solver == "highs") stop("simulated HiGHS runtime failure", call. = FALSE)
+    if (solver == "gurobi") stop("simulated Gurobi runtime failure", call. = FALSE)
     list(data = data, solver_result = list(status = "OPTIMAL"))
   }
   local_mocked_bindings(
@@ -98,9 +99,9 @@ test_that("auto retries the next available backend after a runtime failure", {
   )
   matched <- do.call(
     netmatchRI:::.solve_network_match,
-    c(args, list(solver = c("highs", "glpk")))
+    c(args, list(solver = c("highs", "gurobi", "glpk")))
   )
-  expect_equal(attempts, c("highs", "glpk"))
+  expect_equal(attempts, c("highs", "gurobi", "glpk"))
   expect_equal(matched$solver, "glpk")
 
   attempts <- character(0)

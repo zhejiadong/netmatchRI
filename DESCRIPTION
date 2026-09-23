@@ -1,18 +1,21 @@
 Package: netmatchRI
-Title: Dual-Penalty Matching and Randomization-Based Inference
+Title: Network-Constrained Matching and Randomization-Based Inference
 Version: 0.1.0
 Authors@R: person("Zhejia", "Dong", role = c("aut", "cre"),
     email = "zhejia_dong@brown.edu")
 Author: Zhejia Dong [aut, cre]
 Maintainer: Zhejia Dong <zhejia_dong@brown.edu>
-Description: Implements dual-penalty matching and randomization-based inference
-    for observational network data with network dependence and interference.
-    The dual-penalty matched design incorporates network proximity across
-    treatment arms and among units assigned to the same matched sets. It also
-    includes comparison matching designs, design-based variance bounds,
-    sensitivity analysis, critical sensitivity curves, and a generator for
-    example network data. An optional interface to the commercial 'Gurobi Optimizer'
-    is available. Eligible academic users can request a free license at
+Description: Provides network-constrained matching and randomization-based
+    inference for observational network data with dependence and interference.
+    The three matching methods are dual-penalty, single-penalty, and
+    covariate-only matching. Dual-penalty matching balances covariates while
+    enforcing network-distance restrictions between treatment arms and within
+    matched sets. The package also provides diagnostics for covariate balance
+    and network distance, design-based covariance bounds, sensitivity analysis,
+    and simulated network data. The open-source 'HiGHS' solver is used by
+    default to obtain the optimal matching design.
+    An optional interface to the commercial 'Gurobi Optimizer' is available.
+    Eligible academic users can request a free license at
     <https://www.gurobi.com/academics/>. The optimizer can be downloaded from
     <https://www.gurobi.com/product/download-center>. The associated 'gurobi'
     R package is not available from CRAN; it is distributed with the optimizer

@@ -170,7 +170,7 @@ test_that("randomization inference rejects missing and non-finite outcomes", {
   m <- netmatch(fx$data, "Z", c("X", "F"), fx$network,
                 method = "covariate", network_type = "distance")
   m$data$Y[1] <- NA_real_
-  expect_error(RI_Naive(m, "Y"), "finite and non-missing")
+  expect_error(RI_unadjusted(m, "Y"), "finite and non-missing")
   m$data$Y[1] <- Inf
-  expect_error(RI_Naive(m, "Y"), "finite and non-missing")
+  expect_error(RI_unadjusted(m, "Y"), "finite and non-missing")
 })

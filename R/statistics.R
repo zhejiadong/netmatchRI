@@ -1,4 +1,4 @@
-.validate_outcome <- function(data, outcome) {
+.validate_outcome <- function(data, outcome, subclass = "subclass") {
   if (!outcome %in% names(data)) {
     stop("`outcome` column not found.", call. = FALSE)
   }
@@ -18,7 +18,7 @@
                             treat = "Z",
                             subclass = "subclass",
                             weight_type = c("ns", "ntc")) {
-  .validate_outcome(data, outcome)
+  .validate_outcome(data, outcome, subclass)
   weight_type <- match.arg(weight_type)
   sets <- sort(unique(data[[subclass]]))
   rows <- lapply(sets, function(s) {
@@ -56,20 +56,64 @@
   matrix(0, length(sets), length(sets), dimnames = list(sets, sets))
 }
 
-.naive_covariance_matrix <- function(stats_df) {
+.unadjusted_covariance_matrix <- function(stats_df) {
   Sigma <- matrix(0, nrow(stats_df), nrow(stats_df), dimnames = list(stats_df$subclass, stats_df$subclass))
   diag(Sigma) <- stats_df$var
   Sigma
 }
 
 .design_cov_bound <- function(nt_s, nc_s, nt_k, nc_k) {
-  grid <- seq(0.0001, 0.9999, length.out = 10000)
-  q_s <- stats::qwilcox(grid, m = nt_s, n = nc_s)
-  q_k <- stats::qwilcox(grid, m = nt_k, n = nc_k)
-  mean(q_s * q_k) - mean(q_s) * mean(q_k)
+  counts <- c(nt_s, nc_s, nt_k, nc_k)
+  if (length(counts) != 4L || any(!is.finite(counts)) ||
+      any(counts < 0 | counts != floor(counts))) {
+    stop("Matched-set counts must be finite non-negative integers.", call. = FALSE)
+  }
+  # Use doubles for support products, including integer-valued input counts.
+  counts <- as.double(counts)
+  a <- sort(counts[1:2]); b <- sort(counts[3:4])
+  if (a[1] == 0 || b[1] == 0) return(0)
+  if (identical(a, b)) return(prod(a) * (sum(a) + 1) / 12)
+
+  # The finite-support sum of rectangular differences of min(F_s, F_k)
+  # equals the integral of centered quantile products on their common CDF
+  # intervals. Full matching has uniform U marginals; integer endpoints
+  # avoid numerical CDF evaluations and midpoint rounding at jumps.
+  if (a[1] == 1 && b[1] == 1) {
+    ns <- sum(a); nk <- sum(b)
+    ends <- sort(unique(c((0:ns) * nk, (0:nk) * ns)))
+    left <- ends[-length(ends)]
+    value <- sum((diff(ends) / (ns * nk)) *
+                   (floor(left / nk) - (ns - 1) / 2) *
+                   (floor(left / ns) - (nk - 1) / 2))
+  } else {
+    # Wilcoxon symmetry lets us double the integral on [0, 1/2]. This
+    # avoids CDFs rounded to one in the upper tail. Evaluate immediately
+    # to the right of each left endpoint, not at a rounded midpoint.
+    us <- prod(a); uk <- prod(b)
+    fs <- stats::pwilcox(0:floor(us / 2), a[1], a[2])
+    fk <- stats::pwilcox(0:floor(uk / 2), b[1], b[2])
+    fs <- fs[fs < 0.5]; fk <- fk[fk < 0.5]
+    ends <- sort(unique(c(0, fs, fk, 0.5)))
+    left <- ends[-length(ends)]
+    qs <- findInterval(left, fs)
+    qk <- findInterval(left, fk)
+    value <- 2 * sum(diff(ends) * (qs - us / 2) * (qk - uk / 2))
+  }
+  max(0, value)
 }
 
 .set_distance_matrix <- function(unit_dist, subclass_vec, unit_ids = seq_along(subclass_vec)) {
+  if (!is.matrix(unit_dist) || !is.numeric(unit_dist) ||
+      nrow(unit_dist) != ncol(unit_dist)) {
+    stop("`network_distance` must be a square numeric distance matrix for network inference.", call. = FALSE)
+  }
+  if (length(unit_ids) != length(subclass_vec) || anyNA(unit_ids) ||
+      anyDuplicated(unit_ids) || any(unit_ids < 1 | unit_ids > nrow(unit_dist)) ||
+      any(unit_ids != floor(unit_ids))) {
+    stop("Matched unit row indices must uniquely index `network_distance`.", call. = FALSE)
+  }
+  # Validate matched-unit distances only on network inference paths, never RI_unadjusted.
+  .validate_network(unit_dist[unit_ids, unit_ids, drop = FALSE], "distance")
   sets <- sort(unique(subclass_vec))
   S <- length(sets)
   out <- matrix(0, S, S, dimnames = list(sets, sets))
@@ -118,7 +162,7 @@
   Sigma <- components$bound
   S <- nrow(Sigma)
   diag_vals <- diag(Sigma)
-  if (S < 2 || method == "naive") {
+  if (S < 2 || method == "unadjusted") {
     Sigma[,] <- 0
     diag(Sigma) <- diag_vals
     return(Sigma)
@@ -139,11 +183,11 @@
   bound <- components$bound
   diag_var <- sum((weights^2) * diag(bound))
   S <- nrow(bound)
-  if (S < 2 || method == "naive") return(diag_var)
+  if (S < 2 || method == "unadjusted") return(diag_var)
   pair_idx <- which(upper.tri(bound) & bound != 0, arr.ind = TRUE)
   if (!nrow(pair_idx)) return(diag_var)
   off_diag <- 2 * weights[pair_idx[, 1]] * weights[pair_idx[, 2]] * bound[pair_idx]
-  if (method == "sensitivity") {
+  if (method == "adjusted") {
     set_dist <- components$set_dist[pair_idx]
     off_diag <- off_diag * eta * rho^(set_dist - 1)
   }
@@ -155,5 +199,5 @@
     return(list(z = NA_real_, p = NA_real_))
   }
   z <- (statistic - expectation) / sqrt(variance)
-  list(z = z, p = 2 * (1 - stats::pnorm(abs(z))))
+  list(z = z, p = 2 * stats::pnorm(abs(z), lower.tail = FALSE))
 }

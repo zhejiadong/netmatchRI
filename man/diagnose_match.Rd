@@ -8,16 +8,11 @@ diagnose_match(match)
 \item{match}{A \code{netmatch} object.}
 }
 \value{
-A list with exactly three fields:
-\itemize{
-\item \code{covariate_balance}: columns \code{covariate}, \code{before_abs_smd}, and \code{after_abs_smd} for each numeric covariate and every factor level.
-\item \code{network_summary}: one-row summary with total, finite, and disconnected within-set pair counts and finite-distance minimum, mean, and maximum.
-\item \code{within_distance_table}: counts and proportions for each within-set distance, including \code{Inf} for disconnected pairs when present.
-}
-Distance summaries are \code{NA} when there are no finite within-set distances.
+A list containing covariate-balance results, a network-distance summary, and
+the within-matched-set distance table.
 }
 \description{
-Computes covariate balance and within-set network-distance diagnostics.
+Checks covariate balance and network distance within matched sets.
 }
 \details{
 Each factor level is represented by an indicator. For every reported covariate, the before and after absolute standardized mean differences use one fixed pooled original-sample standard deviation,

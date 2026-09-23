@@ -11,21 +11,22 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 ```
 
-`netmatchRI` combines matched design construction, diagnostics,
+`netmatchRI` provides network-constrained matching, diagnostics,
 randomization-based inference, and sensitivity analysis for observational
-network data.
+network data. Its three matching methods are dual-penalty, single-penalty, and
+covariate-only matching.
 
 ## Data
 
 The data frame should contain one row per unit, a binary treatment, baseline
 covariates, and an outcome. The network may be supplied as an adjacency or
-graph-distance matrix. This example uses a small deterministic draw from the
-package generator.
+graph-distance matrix. This example uses a reproducible simulated dataset with
+a nonzero treatment effect.
 
 ```{r}
 library(netmatchRI)
 
-sim <- simulate_netmatch_example(seed = 20260821, n = 32)
+sim <- simulate_netmatch_example(seed = 90141, n = 60, beta_z = 2)
 dat <- sim$data
 net_dist <- sim$net_dist
 
@@ -45,7 +46,8 @@ m <- netmatch(
   covariates = c("X1", "X2", "X3"),
   network = net_dist,
   method = "dual",
-  kappa = 2
+  kappa = 2,
+  estimand = "ATT"
 )
 
 m
@@ -54,8 +56,8 @@ m
 ## Summary and diagnostics
 
 The summary reports matched sample sizes, effective sample sizes, matched-set
-sizes, balance, network distances, and solver status. `diagnose_match()` returns
-the balance and network diagnostics as data frames.
+sizes, balance, network distances, and solver status. `diagnose_match()` checks
+covariate balance and network distance within matched sets.
 
 ```{r}
 summary(m)
@@ -65,18 +67,47 @@ diag$covariate_balance
 diag$network_summary
 ```
 
-## Randomization-based inference
+## Compare matching designs
 
-`RI_Naive()` uses matched-set variances only. `RI_Sensitivity()` allows
-residual covariance between matched sets, while `RI_Design()` uses the
-design-based bound.
+Pass any selected matching designs as a named list. The two plots reproduce the
+paper's covariate balance and covariate similarity diagnostics. Set
+`include_before = FALSE` to omit the original unmatched sample.
 
 ```{r}
-ri_naive <- RI_Naive(m, "Y")
-ri_sens <- RI_Sensitivity(m, "Y", eta = 0.03, rho = 0.10)
-ri_design <- RI_Design(m, "Y")
+m_covariate <- netmatch(
+  dat, "Z", c("X1", "X2", "X3"), net_dist,
+  method = "covariate"
+)
+m_single <- netmatch(
+  dat, "Z", c("X1", "X2", "X3"), net_dist,
+  method = "single", kappa = 2
+)
+designs <- list(
+  "Dual-penalty" = m,
+  "Covariate-only" = m_covariate,
+  "Single-penalty" = m_single
+)
+plot_covariate_balance(designs, include_before = TRUE)
+plot_covariate_similarity(designs, include_before = TRUE)
+```
 
-rbind(ri_naive$result, ri_sens$result, ri_design$result)
+## Randomization-based inference
+
+`RI_unadjusted()` ignores dependence across matched sets. `RI_adjusted()` supplies design-based covariance bounds between matched sets with user-specified sensitivity parameters eta and rho, while `RI_design()` uses the
+design-based covariance bound. These procedures test the sharp null of no causal effect for every individual.
+
+The `estimand = "ATT"`, `"ATC"`, and `"ATE"` options in `netmatch()` select
+unit matching weights used by `matched_data()` and the balance diagnostics.
+They do not change these sharp-null tests. The `weight_type` argument of the
+RI functions selects the matched-set weights in the test statistic.
+The defaults are `estimand = "ATT"` and `weight_type = "ns"`.
+
+```{r}
+ri_unadjusted <- RI_unadjusted(m, "Y")
+ri_adjusted <- RI_adjusted(m, "Y", eta = 0.5, rho = 0.3)
+ri_design <- RI_design(m, "Y")
+
+rbind(ri_unadjusted$result, ri_adjusted$result, ri_design$result)
 ```
 
 ## Sensitivity
@@ -85,27 +116,29 @@ Evaluate a grid of dependence parameters and compute the critical curve for a
 chosen test level.
 
 ```{r}
-grid <- sensitivity_grid(
+sens <- sensitivity_grid(
   m,
   "Y",
-  eta = c(0, 0.03, 0.06),
-  rho = seq(0, 1, by = 0.25)
+  eta = seq(0, 0.5, by = 0.1),
+  rho = seq(0, 0.3, by = 0.05)
 )
-grid$grid
-plot_sensitivity(grid)
+sens$grid
+plot_sensitivity(sens)
 
 crit <- critical_sensitivity(m, "Y", rho = seq(0, 1, by = 0.25))
-crit$curve
+crit
+crit$summary
+plot_sensitivity(crit)
 ```
 
 ## Interpretation
 
-The sensitivity grid shows how the p-value changes as `eta` increases the
-magnitude of residual covariance and `rho` controls its decay with network
-distance. The critical curve reports the smallest nonnegative `eta` at each
-`rho` that reaches the selected test level. If the naive analysis is already
-not significant, no positive critical boundary is reported.
+The sensitivity grid shows how the p-value changes as `eta` scales the
+design-based covariance bounds and `rho` controls their decay with network distance.
+The critical curve gives the value of `eta` at each `rho` for which the
+p-value equals `alpha`. Within `[0, 1]`, values below
+the curve retain rejection and values above it do not.
 
-```{r}
-crit$interpretation
-```
+The summary reports the critical eta at `rho = 1` and the critical ratio.
+If the baseline analysis is already nonsignificant, no critical boundary is
+reported. See `?critical_sensitivity` for the formulas and boundary cases.

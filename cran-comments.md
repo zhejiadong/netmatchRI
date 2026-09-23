@@ -1,41 +1,40 @@
-## Resubmission
+## Revision summary
 
-This is a resubmission in response to CRAN's request to declare where the
-optional `gurobi` package can be obtained.
+The package provides network-constrained matching and randomization-based
+inference for observational network data. It exposes critical eta at rho = 1
+and the critical ratio through `critical_sensitivity()`. The design-based
+covariance bound is evaluated by a finite sum rather than a quantile-grid
+approximation. The rank statistic, ATT/ATC/ATE matching-weight options, and
+matching/caliper behavior are unchanged.
 
-- The `Description` field now provides links for eligible academic users to
-  request a free Gurobi license, to download Gurobi Optimizer, and to install
-  the non-CRAN `gurobi` R package distributed with the optimizer.
-- The README now provides step-by-step optional-backend installation guidance.
-- Gurobi remains entirely optional. The package uses the open-source CRAN
-  package `highs` as its default solver, and Gurobi is not required to install,
-  load, test, or use the default functionality of `netmatchRI`.
+## Test environment and completed checks
 
-## Test environments
+Windows 11 x64; R 4.5.0.
 
-- local Windows 11 x64, R 4.5.0
-- GitHub Actions, Windows, R-release
-- GitHub Actions, macOS, R-release
-- GitHub Actions, Ubuntu, R-devel
-- GitHub Actions, Ubuntu, R-release
-- GitHub Actions, Ubuntu, R-oldrel-1
-- Win-builder, R-release
-- Win-builder, R-devel
+Exact artifact: `netmatchRI_0.1.0.tar.gz` (70,359 bytes).
+SHA-256: `349f2e1294fdad5d2825da585ed9314d42df91879450244f862c2309fd87c048`.
 
-## R CMD check results
+- 1,117 source test assertions across 72 test blocks passed; no test failures,
+  errors, warnings, or skips.
+- `R CMD check --as-cran` on the exact source archive completed with 0 errors,
+  0 warnings, and 1 NOTE.
+- The exact archive built the PDF and HTML manuals, rebuilt the vignette, and
+  ran all examples and tests successfully.
+- The exact archive installed in an isolated library; its installed citation,
+  package metadata, and default HiGHS workflow were verified.
 
-0 errors | 0 warnings | 1 note
+## NOTE explanation
 
-- This is a new submission.
-- `gurobi` is listed in `Enhances` but is not in a mainstream R repository. The
-  `Description` field now states where users can request a license, download
-  Gurobi Optimizer, and install its bundled R package. The optional interface is
-  used only after `requireNamespace("gurobi", quietly = TRUE)` and a license
-  probe succeed. The package defaults to the open-source CRAN package `highs`;
-  Gurobi is not required to install, load, test, or use `netmatchRI`.
+The sole NOTE reports a new submission and optional `gurobi` in `Enhances`.
+The Description supplies the official academic-license, optimizer-download, and
+R-interface installation links. Gurobi is not required to install, load, test,
+or use the default HiGHS workflow.
 
-## Additional checks
+## External checks / submission state
 
-- Package URLs were checked successfully.
-- The source tarball installs and the default HiGHS workflow passes a clean-library smoke test.
-- Win-builder checks passed on R-release and R-devel with the same expected NOTE. PDF and HTML manuals were generated successfully.
+No CRAN upload, Git push, release tag, or current-artifact remote-platform
+check has been made. The public GitHub repository should be aligned with this
+release candidate before submission because the package Description links to it.
+
+This file is excluded from the source tarball; it records evidence for the
+submission form without changing the checked payload.

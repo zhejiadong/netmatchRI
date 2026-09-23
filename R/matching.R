@@ -1,50 +1,41 @@
-#' Build a Dual-Penalty Matched Design
+#' Build a Network-Constrained Matched Design
 #'
-#' `netmatch()` builds a dual-penalty matched design via a mixed-
-#' integer program. The covariate-only and single-penalty comparison designs
-#' use `optmatch::fullmatch()`. The cutoff is a direct graph-distance
-#' threshold: `kappa = 2` means network-distance pairs less than or equal to 2
-#' are disallowed where the selected design applies network restrictions.
+#' `netmatch()` provides three network-constrained matching methods for
+#' observational network data: dual-penalty, single-penalty, and covariate-only
+#' matching. Dual-penalty matching balances covariates while restricting
+#' network-close pairs both across treatment arms and within matched sets.
+#' Single-penalty matching restricts network-close pairs across treatment arms;
+#' covariate-only matching has no network-distance restriction.
 #'
-#' @param data A data frame with one row per unit. Users supplying their own
-#'   data should include at least a binary treatment column such as `Z`,
-#'   covariate columns such as `X1`, `X2`, `X3`, and an outcome column such as
-#'   `Y` when randomization-based inference will be run later.
-#' @param treat Name of the binary treatment column coded 0/1.
-#' @param covariates Character vector of covariate column names.
-#' @param network Square adjacency or network-distance matrix.
-#' @param method Matching method: `"dual"`, `"single"`, or `"covariate"`.
-#' @param kappa Network-distance threshold for disallowed close pairs.
-#' @param solver Solver preference for `method = "dual"`. `"highs"` is the
-#'   default open-source backend. `"auto"` tries Gurobi, HiGHS, then GLPK.
-#'   `"gurobi"`, `"highs"`, and `"glpk"` request one backend explicitly. The
-#'   `"covariate"` and `"single"` methods use `optmatch::fullmatch()`.
-#' @param min_controls Minimum controls per treated unit in each matched set.
-#' @param max_controls Maximum controls per treated unit in each matched set.
-#' @param caliper Mahalanobis-distance caliper for feasible treated-control
-#'   edges.
-#' @param timelimit Solver time limit in seconds.
-#' @param mipgap Relative MIP gap for Gurobi and HiGHS.
-#' @param threads Number of Gurobi or HiGHS threads.
-#' @param estimand Target estimand used to construct unit matching weights:
-#'   `"ATT"`, `"ATC"`, or `"ATE"`. Nonzero weights are normalized within
-#'   each treatment group to have mean 1.
-#' @param network_type Interpretation of `network`: `"adjacency"`,
-#'   `"distance"`, or `"auto"`. An explicit choice overrides automatic
-#'   detection. Infinite values are allowed only for distance matrices.
-#' @param include_solver If `TRUE`, retain the complete backend result in
-#'   `solver_result`. The default keeps only stable `solver_info`.
-#' @return A `netmatch` object containing matched `data`, full-length
-#'   `subclass`, `weights`, and `matched` vectors, the original call and data,
-#'   the estimand and resolved network type, the unit-level network-distance
-#'   matrix, and stable solver information. Complete backend output is included only
-#'   when `include_solver = TRUE`.
-#' @details The column names `subclass` and `weights` are reserved for matching
-#'   output and must not already be present in `data`. `solver`, `caliper`,
-#'   `timelimit`, `mipgap`, and `threads` are used
-#'   only by `method = "dual"`; comparison methods use
-#'   `optmatch::fullmatch()`. `kappa` is ignored by `method = "covariate"`.
-#'   `method = "single"` uses `kappa` but not the mixed-integer solver controls.
+#' @details For dual-penalty matching, the design is solved as a mixed-integer program.
+#'   The network distance threshold is direct: `kappa = 2` means pairs
+#'   with network distance less than or equal to 2 are disallowed wherever the
+#'   selected design applies network restrictions. Covariate-only and
+#'   single-penalty comparison designs use `optmatch::fullmatch()`.
+#'
+#' @param data Data frame with one row per unit. The names \code{subclass} and \code{weights} are reserved.
+#' @param treat Name of the binary treatment column.
+#' @param covariates Names of the numeric or factor covariates used for matching.
+#' @param network Symmetric adjacency or network-distance matrix aligned with \code{data}.
+#' @param method Matching method: dual-penalty, single-penalty, or covariate-only.
+#'   Default: dual-penalty (\code{"dual"}).
+#' @param kappa Network distance threshold used by designs with network restrictions. Default: \code{2}.
+#' @param solver Solver for dual-penalty matching: \code{"highs"}, \code{"auto"}, \code{"gurobi"}, or \code{"glpk"}. \code{"auto"} tries HiGHS, then Gurobi, then GLPK. Default: \code{"highs"}.
+#' @param min_controls Minimum control-to-treated ratio. Default: \code{0.01}.
+#' @param max_controls Maximum control-to-treated ratio; use \code{Inf} for no upper limit. Default: \code{100}.
+#' @param caliper Mahalanobis-distance caliper for treated-control pairs,
+#'   analogous to a propensity-score caliper; use \code{Inf} for no caliper.
+#'   Default: \code{Inf}.
+#' @param timelimit Solver time limit in seconds. Default: \code{90}.
+#' @param mipgap Target relative MIP gap. Default: \code{0.01}.
+#' @param threads Requested solver threads. Default: \code{1}.
+#' @param estimand Unit matching weights used in summaries and balance diagnostics: \code{"ATT"}, \code{"ATC"}, or \code{"ATE"}. Default: \code{"ATT"}. This choice does not change the sharp-null RI test.
+#' @param network_type Format of \code{network}: \code{"auto"}, \code{"adjacency"}, or \code{"distance"}. Default: \code{"auto"}.
+#' @param include_solver If \code{TRUE}, retain the complete solver result. Default: \code{FALSE}.
+#' @return A \code{netmatch} object containing the matched data, full-sample
+#'   subclasses and unit weights, design settings, network distances, and solver
+#'   summary. \code{summary()} returns sample, balance, network, and solver
+#'   summaries; \code{plot()} draws the within-matched-set distance diagnostic.
 #' @examples
 #' \dontrun{
 #' sim <- simulate_netmatch_example()
@@ -55,7 +46,8 @@
 #'   network = sim$net_dist,
 #'   method = "dual",
 #'   kappa = 2,
-#'   solver = "highs"
+#'   solver = "highs",
+#'   estimand = "ATT"
 #' )
 #' m
 #' summary(m)
@@ -70,7 +62,7 @@ netmatch <- function(data,
                      solver = c("highs", "auto", "gurobi", "glpk"),
                      min_controls = 0.01,
                      max_controls = 100,
-                     caliper = 8,
+                     caliper = Inf,
                      timelimit = 90,
                      mipgap = 0.01,
                      threads = 1,
@@ -98,7 +90,7 @@ netmatch <- function(data,
     stop("`include_solver` must be TRUE or FALSE.", call. = FALSE)
   }
   if (!is.numeric(kappa) || length(kappa) != 1 || !is.finite(kappa) || kappa < 0) {
-    stop("`kappa` must be one non-negative graph-distance threshold.", call. = FALSE)
+    stop("`kappa` must be one non-negative network distance threshold.", call. = FALSE)
   }
 
   D <- .mahalanobis_matrix(data, z, covariates, cov_type = "pooled")
@@ -227,11 +219,9 @@ netmatch <- function(data,
 #' Returns the original unit-level data with the full-length matched-set
 #' membership and matching weights appended.
 #'
-#' @param object A `netmatch` object.
-#' @param drop_unmatched If `TRUE`, omit unmatched units. If `FALSE`, retain
-#'   them with missing `subclass` and zero `weights`.
-#' @return A data frame containing the original columns plus `subclass` and
-#'   `weights`.
+#' @param object A \code{netmatch} object.
+#' @param drop_unmatched If \code{TRUE}, omit unmatched units. Default: \code{TRUE}.
+#' @return The unit-level data with \code{subclass} and \code{weights} appended.
 #' @export
 matched_data <- function(object, drop_unmatched = TRUE) {
   if (!inherits(object, "netmatch")) {
@@ -266,12 +256,12 @@ matched_data <- function(object, drop_unmatched = TRUE) {
   }
   if (solver == "auto") {
     candidates <- c(
-      if (.gurobi_available()) "gurobi",
       if (.highs_available()) "highs",
+      if (.gurobi_available()) "gurobi",
       if (.glpk_available()) "glpk"
     )
     if (length(candidates)) return(candidates)
-    stop("Dual matching requires Gurobi, HiGHS, or Rglpk.", call. = FALSE)
+    stop("Dual-penalty matching requires HiGHS, Gurobi, or Rglpk.", call. = FALSE)
   }
   stop("Unknown solver.", call. = FALSE)
 }
@@ -828,10 +818,19 @@ matched_data <- function(object, drop_unmatched = TRUE) {
   subclass
 }
 
+.matching_method_label <- function(method) {
+  switch(method,
+         dual = "dual-penalty",
+         single = "single-penalty",
+         covariate = "covariate-only",
+         method)
+}
+
 #' @export
 print.netmatch <- function(x, ...) {
   n_sets <- length(unique(x$subclass[!is.na(x$subclass)]))
-  cat("<netmatch> ", x$method, " matching; ", x$estimand, " estimand\n", sep = "")
+  cat("<netmatch> ", .matching_method_label(x$method), " matching; ",
+      x$estimand, " matching weights\n", sep = "")
   cat("  ", sum(x$matched), "/", length(x$matched), " units in ", n_sets,
       " matched sets; ", x$solver_info$backend, " backend\n", sep = "")
   invisible(x)
@@ -841,9 +840,9 @@ print.netmatch <- function(x, ...) {
 #'
 #' @param object A `netmatch` object.
 #' @param ... Unused.
-#' @return A `netmatch_summary` object containing sample counts, effective
-#'   sample sizes, matched-set sizes, covariate balance, network diagnostics,
-#'   and stable solver information.
+#' @return A \code{netmatch_summary} object containing sample counts, effective
+#'   sample sizes, matched-set sizes, balance and network diagnostics, and solver
+#'   information.
 #' @rdname netmatch
 #' @export
 summary.netmatch <- function(object, ...) {
@@ -909,7 +908,7 @@ print.netmatch_summary <- function(x, ...) {
   invisible(x)
 }
 
-#' Plot Within-Set Network Distances
+#' Plot Within-Matched-Set Network Distances
 #'
 #' @param x A `netmatch` object.
 #' @param ... Unused.
@@ -921,7 +920,7 @@ plot.netmatch <- function(x, ...) {
   graphics::barplot(diag$within_distance_table$proportion,
                     names.arg = diag$within_distance_table$distance,
                     xlab = "Network distance",
-                    ylab = "Within-set proportion",
-                    main = x$method)
+                    ylab = "Within-matched-set proportion",
+                    main = .matching_method_label(x$method))
   invisible(diag)
 }

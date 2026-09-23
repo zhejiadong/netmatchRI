@@ -1,6 +1,6 @@
 #' Diagnose a Matched Design
 #'
-#' Computes covariate balance and within-set network-distance diagnostics for a
+#' Checks covariate balance and network distance within matched sets for a
 #' `netmatch` object. Each level of a factor covariate is reported as an
 #' indicator. For each reported covariate, both standardized mean differences use
 #' the same pooled original-sample standard deviation,
@@ -8,11 +8,9 @@
 #' difference uses unweighted original-sample means; the after difference uses
 #' the unit matching weights among matched units.
 #'
-#' @param match A `netmatch` object.
-#' @return A list with exactly three fields: `covariate_balance`,
-#'   `network_summary`, and `within_distance_table`. The network summary reports
-#'   finite and disconnected within-set unit-pair counts. Distance summaries are
-#'   `NA` when there are no finite within-set distances.
+#' @param match A \code{netmatch} object.
+#' @return A list containing covariate-balance results, a network-distance
+#'   summary, and the within-matched-set distance table.
 #' @examples
 #' \dontrun{
 #' sim <- simulate_netmatch_example()

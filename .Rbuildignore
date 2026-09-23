@@ -8,3 +8,5 @@
 ^inst/reproduce/output$
 ^cran-comments\.md$
 ^CITATION\.cff$
+^.*\.Rcheck$
+^.*\.tar\.gz$

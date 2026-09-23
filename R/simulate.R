@@ -4,19 +4,16 @@
 #' a binary treatment, and an outcome. Covariates, treatment, and outcome may
 #' be correlated across connected units.
 #'
-#' @param seed Random seed for the simulation.
-#' @param beta_z Treatment effect in the outcome model.
-#' @param n Number of units. Must be divisible by four.
-#' @param alpha1 Network-related contribution to the covariance structure, from
-#'   0 to 1.
-#' @param alpha2 Unit-specific contribution to the covariance structure, from
-#'   0 to 1.
-#' @param pin Within-block edge probability for the stochastic block network.
-#' @param pout Between-block edge probability for the stochastic block network.
-#' @return A list with the generated `data`, adjacency matrix `Adj`,
-#'   graph-distance matrix `net_dist`, covariance matrix `V`, simulation
-#'   `seed`, `beta_z`, `alpha1`,
-#'   `alpha2`, `pin`, and `pout`.
+#' @param seed Simulation seed. Default: \code{90141}.
+#' @param beta_z Treatment effect in the outcome model. Default: \code{0}.
+#' @param n Number of units, divisible by four. Default: \code{300}.
+#' @param alpha1 Network-related covariance coefficient in \code{[0, 1]}. Default: \code{0.9}.
+#' @param alpha2 Unit-specific covariance coefficient in \code{[0, 1]}. Default: \code{0.1}.
+#' @param pin Within-block edge probability. Default: \code{0.19}.
+#' @param pout Between-block edge probability. Default: \code{0.003}.
+#' @return A list containing the simulated \code{data}, adjacency matrix
+#'   \code{Adj}, network-distance matrix \code{net_dist}, covariance matrix
+#'   \code{V}, and the simulation settings.
 #' @examples
 #' sim <- simulate_netmatch_example(seed = 123, n = 32)
 #' dim(sim$data)
@@ -35,7 +32,17 @@ simulate_netmatch_example <- function(seed = 90141,
   if (!requireNamespace("mvtnorm", quietly = TRUE)) {
     stop("Package `mvtnorm` is required for simulation.", call. = FALSE)
   }
-  if (n %% 4 != 0) stop("`n` must be divisible by 4.", call. = FALSE)
+  if (!is.numeric(seed) || length(seed) != 1 || !is.finite(seed) ||
+      seed != as.integer(seed)) {
+    stop("`seed` must be one finite integer.", call. = FALSE)
+  }
+  if (!is.numeric(beta_z) || length(beta_z) != 1 || !is.finite(beta_z)) {
+    stop("`beta_z` must be one finite number.", call. = FALSE)
+  }
+  if (!is.numeric(n) || length(n) != 1 || !is.finite(n) || n <= 0 ||
+      n != as.integer(n) || n %% 4 != 0) {
+    stop("`n` must be one positive integer divisible by 4.", call. = FALSE)
+  }
   .check_unit_interval(alpha1, "alpha1")
   .check_unit_interval(alpha2, "alpha2")
   .check_unit_interval(pin, "pin")

@@ -2,9 +2,9 @@
 
 library(netmatchRI)
 
-sim <- simulate_netmatch_example(seed = 20260821, n = 32)
+sim <- simulate_netmatch_example(seed = 90141, n = 60, beta_z = 2)
 
-match <- netmatch(
+m <- netmatch(
   data = sim$data,
   treat = "Z",
   covariates = c("X1", "X2", "X3"),
@@ -14,16 +14,20 @@ match <- netmatch(
   solver = "highs"
 )
 
-match_summary <- summary(match)
-diagnostics <- diagnose_match(match)
-ri_naive <- RI_Naive(match, "Y")
-ri_sensitivity <- RI_Sensitivity(match, "Y", eta = 0.03, rho = 0.10)
-ri_design <- RI_Design(match, "Y")
+match_summary <- summary(m)
+diagnostics <- diagnose_match(m)
+ri_unadjusted <- RI_unadjusted(m, "Y")
+ri_adjusted <- RI_adjusted(m, "Y", eta = 0.03, rho = 0.10)
+ri_design <- RI_design(m, "Y")
 
-grid <- sensitivity_grid(
-  match,
+sens <- sensitivity_grid(
+  m,
   "Y",
-  eta = c(0, 0.03),
-  rho = c(0, 0.5, 1)
+  eta = seq(0, 0.5, by = 0.1),
+  rho = seq(0, 0.3, by = 0.05)
 )
-critical <- critical_sensitivity(match, "Y", rho = c(0, 0.5, 1))
+critical <- critical_sensitivity(m, "Y", rho = seq(0, 1, by = 0.05))
+print(critical)
+critical$summary
+plot_sensitivity(sens)
+plot_sensitivity(critical)

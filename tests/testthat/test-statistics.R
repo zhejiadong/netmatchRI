@@ -19,13 +19,13 @@ test_that("RI helpers return tidy inference output", {
     Y = c(3, 4, 5, 6, 2, 3, 4, 5)
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), A, method = "covariate")
-  fit <- RI_Naive(m, "Y")
+  fit <- RI_unadjusted(m, "Y")
   expect_s3_class(fit, "netmatch_test")
   expect_true(all(c("statistic", "expectation", "variance", "p_value") %in% names(fit$result)))
   expect_true(is.finite(fit$result$variance))
 })
 
-test_that("RI_Naive does not require set-distance construction", {
+test_that("RI_unadjusted does not require set-distance construction", {
   A <- matrix(0, 8, 8)
   A[cbind(1:7, 2:8)] <- 1
   A[cbind(2:8, 1:7)] <- 1
@@ -37,12 +37,12 @@ test_that("RI_Naive does not require set-distance construction", {
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), A, method = "covariate")
   m$network_distance <- NULL
-  fit <- RI_Naive(m, "Y")
+  fit <- RI_unadjusted(m, "Y")
   expect_s3_class(fit, "netmatch_test")
   expect_true(is.finite(fit$result$variance))
 })
 
-test_that("sensitivity with eta zero equals naive variance", {
+test_that("sensitivity with eta zero equals unadjusted variance", {
   A <- matrix(0, 8, 8)
   A[cbind(1:7, 2:8)] <- 1
   A[cbind(2:8, 1:7)] <- 1
@@ -53,9 +53,9 @@ test_that("sensitivity with eta zero equals naive variance", {
     Y = c(3, 4, 5, 6, 2, 3, 4, 5)
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), A, method = "covariate")
-  naive <- RI_Naive(m, "Y")
-  sensitivity <- RI_Sensitivity(m, "Y", eta = 0, rho = 0)
-  expect_equal(sensitivity$result$variance, naive$result$variance)
+  unadjusted <- RI_unadjusted(m, "Y")
+  sensitivity <- RI_adjusted(m, "Y", eta = 0, rho = 0)
+  expect_equal(sensitivity$result$variance, unadjusted$result$variance)
 })
 
 test_that("design equals sensitivity with eta and rho equal to one", {
@@ -69,8 +69,8 @@ test_that("design equals sensitivity with eta and rho equal to one", {
     Y = c(3, 4, 5, 6, 2, 3, 4, 5)
   )
   m <- netmatch(dat, "Z", c("X1", "X2"), A, method = "covariate", kappa = 2)
-  design <- RI_Design(m, "Y")
-  sensitivity <- RI_Sensitivity(m, "Y", eta = 1, rho = 1)
+  design <- RI_design(m, "Y")
+  sensitivity <- RI_adjusted(m, "Y", eta = 1, rho = 1)
   expect_equal(sensitivity$result$variance, design$result$variance)
 })
 
@@ -96,7 +96,7 @@ test_that("design covariance truncates at kappa", {
   expect_equal(Sigma[2, 3], 0)
 })
 
-test_that("sensitivity grid matches repeated RI_Sensitivity calls", {
+test_that("sensitivity grid matches repeated RI_adjusted calls", {
   D <- matrix(4, 8, 8)
   diag(D) <- 0
   dat <- data.frame(
@@ -108,7 +108,7 @@ test_that("sensitivity grid matches repeated RI_Sensitivity calls", {
   m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "covariate", kappa = 2)
   sens <- sensitivity_grid(m, "Y", eta = seq(0, 0.03, by = 0.03), rho = seq(0.1, 0.5, by = 0.4))
   expected <- do.call(rbind, lapply(seq_len(nrow(sens$grid)), function(i) {
-    RI_Sensitivity(m, "Y", eta = sens$grid$eta[i], rho = sens$grid$rho[i])$result
+    RI_adjusted(m, "Y", eta = sens$grid$eta[i], rho = sens$grid$rho[i])$result
   }))
   rownames(expected) <- NULL
   rownames(sens$grid) <- NULL
@@ -116,24 +116,19 @@ test_that("sensitivity grid matches repeated RI_Sensitivity calls", {
 })
 
 test_that("critical sensitivity returns one curve and reaches alpha", {
-  skip_without_gurobi()
-  D <- matrix(4, 8, 8)
-  diag(D) <- 0
-  dat <- data.frame(
-    Z = c(1, 1, 1, 1, 0, 0, 0, 0),
-    X1 = c(0, 1, 2, 3, 0.1, 1.1, 2.1, 3.1),
-    X2 = c(1, 1, 2, 2, 1.2, 1.1, 2.2, 2.1),
-    Y = c(8, 7, 6, 5, 1, 2, 3, 4)
-  )
-  m <- netmatch(dat, "Z", c("X1", "X2"), D, method = "dual", kappa = 2)
-  crit <- critical_sensitivity(m, "Y", rho = seq(0.1, 0.5, by = 0.4), alpha = 0.05)
+  D <- matrix(1, 8, 8); diag(D) <- 0
+  dat <- data.frame(Z = rep(c(1, 0), 4), Y = rep(c(2, 1), 4),
+                    subclass = rep(1:4, each = 2))
+  m <- structure(list(data = dat, treat = "Z", method = "dual", kappa = 2,
+                      network_distance = D), class = "netmatch")
+  crit <- critical_sensitivity(m, "Y", rho = c(0.1, 0.5), alpha = 0.05)
   expect_s3_class(crit, "netmatch_critical_sensitivity")
   expect_equal(nrow(crit$curve), 2)
-  eta_star <- crit$curve$eta_critical[is.finite(crit$curve$eta_critical) & crit$curve$eta_critical > 0][1]
-  rho_star <- crit$curve$rho[is.finite(crit$curve$eta_critical) & crit$curve$eta_critical > 0][1]
-  if (is.finite(eta_star) && eta_star <= 1) {
-    fit <- RI_Sensitivity(m, "Y", eta = eta_star, rho = rho_star)
-    expect_equal(fit$result$p_value, 0.05, tolerance = 1e-6)
+  expect_true(all(crit$curve$eta_in_range))
+  expect_true(all(crit$curve$eta_critical > 0))
+  for (i in seq_len(nrow(crit$curve))) {
+    fit <- RI_adjusted(m, "Y", eta = crit$curve$eta_critical[i], rho = crit$curve$rho[i])
+    expect_equal(fit$result$p_value, 0.05, tolerance = 1e-12)
   }
 })
 
@@ -176,4 +171,6 @@ test_that("sensitivity plots return ggplot objects", {
   expect_equal(p_pvalue$labels$colour, expression(eta))
   expect_null(p_critical$labels$title)
   expect_null(p_critical$labels$subtitle)
+  expect_error(plot_sensitivity(sens, alpha = 0), "between 0 and 1")
+  expect_error(plot_sensitivity(sens, alpha = 1), "between 0 and 1")
 })

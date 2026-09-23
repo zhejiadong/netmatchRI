@@ -26,3 +26,10 @@ test_that("simulate_netmatch_example validates unit-interval parameters", {
   expect_error(simulate_netmatch_example(n = 40, pin = 2), "pin")
   expect_error(simulate_netmatch_example(n = 40, pout = NA_real_), "pout")
 })
+
+test_that("simulate_netmatch_example validates scalar simulation inputs", {
+  expect_error(simulate_netmatch_example(seed = 1.5, n = 40), "seed")
+  expect_error(simulate_netmatch_example(beta_z = Inf, n = 40), "beta_z")
+  expect_error(simulate_netmatch_example(n = 0), "positive integer")
+  expect_error(simulate_netmatch_example(n = 42), "divisible by 4")
+})

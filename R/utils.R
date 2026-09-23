@@ -98,6 +98,9 @@
       stop("An adjacency `network` must contain only 0 and 1.", call. = FALSE)
     }
   }
+  if (resolved_type == "distance" && any(network[row(network) != col(network)] < 1)) {
+    stop("A distance `network` must have off-diagonal distances >= 1 (or Inf for disconnected units).", call. = FALSE)
+  }
   list(network = network, network_type = resolved_type)
 }
 

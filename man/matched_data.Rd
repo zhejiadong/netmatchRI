@@ -6,11 +6,11 @@ matched_data(object, drop_unmatched = TRUE)
 }
 \arguments{
 \item{object}{A \code{netmatch} object.}
-\item{drop_unmatched}{If \code{TRUE}, omit unmatched units. If \code{FALSE}, retain them with missing \code{subclass} and zero \code{weights}.}
+\item{drop_unmatched}{If \code{TRUE}, omit unmatched units. Default: \code{TRUE}.}
 }
 \value{
-A data frame containing the original columns plus full-length matched-set membership in \code{subclass} and unit matching weights in \code{weights}.
+The unit-level data with \code{subclass} and \code{weights}.
 }
 \description{
-Returns the original unit-level data with matched-set membership and matching weights appended.
+Returns the original unit-level data with matched-set membership and matching weights.
 }
